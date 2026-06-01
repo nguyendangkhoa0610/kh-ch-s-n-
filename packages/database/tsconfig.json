@@ -1,0 +1,8 @@
+{
+  "extends": "@tram-huong/config/typescript/node",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

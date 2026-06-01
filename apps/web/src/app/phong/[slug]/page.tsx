@@ -1,0 +1,246 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
+import { ROOM_TYPES } from "@/lib/room-data";
+import { formatPrice } from "@tram-huong/shared";
+
+type Props = { params: Promise<{ slug: string }> };
+
+export async function generateStaticParams() {
+  return ROOM_TYPES.map((r) => ({ slug: r.slug }));
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const room = ROOM_TYPES.find((r) => r.slug === slug);
+  if (!room) return {};
+  return {
+    title: `${room.name} — Trầm Hương Eco-Resort`,
+    description: room.description,
+  };
+}
+
+function CheckIcon() {
+  return (
+    <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-slate-50 rounded-2xl p-4 text-center">
+      <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-1">{label}</p>
+      <p className="text-slate-800 font-semibold text-sm leading-snug">{value}</p>
+    </div>
+  );
+}
+
+export default async function RoomDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const room = ROOM_TYPES.find((r) => r.slug === slug);
+  if (!room) notFound();
+
+  const others = ROOM_TYPES.filter((r) => r.slug !== slug).slice(0, 3);
+
+  return (
+    <>
+      <SiteNav />
+
+      {/* Hero */}
+      <section className={`pt-[72px] bg-gradient-to-br ${room.gradient} relative overflow-hidden`}>
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+            style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }} />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-white/50 text-sm mb-8">
+            <Link href="/" className="hover:text-white transition-colors">Trang chủ</Link>
+            <span>/</span>
+            <Link href="/phong" className="hover:text-white transition-colors">Phòng</Link>
+            <span>/</span>
+            <span className="text-white/80">{room.name}</span>
+          </nav>
+
+          {room.badge && (
+            <span className="inline-block bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+              {room.badge}
+            </span>
+          )}
+
+          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-white font-semibold mb-3 leading-tight">
+            {room.name}
+          </h1>
+          <p className="text-white/70 text-xl mb-8">{room.tagline}</p>
+
+          {/* Quick stats */}
+          <div className="flex flex-wrap gap-3">
+            {[
+              { icon: "🛏", text: room.bedType },
+              { icon: "👥", text: `${room.capacity} khách` },
+              { icon: "📐", text: `${room.size} m²` },
+              { icon: "🏔", text: room.view },
+            ].map((s) => (
+              <span
+                key={s.text}
+                className="flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-full border border-white/20"
+              >
+                <span>{s.icon}</span>
+                {s.text}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Main content */}
+      <main className="bg-amber-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 lg:py-20">
+          <div className="grid lg:grid-cols-[1fr_380px] gap-12">
+
+            {/* Left: details */}
+            <div>
+              {/* Image gallery placeholder */}
+              <div className="grid grid-cols-3 gap-3 mb-12">
+                <div className={`col-span-2 h-64 bg-gradient-to-br ${room.gradient} rounded-2xl flex items-center justify-center`}>
+                  <svg className="w-16 h-16 text-white/20" fill="none" stroke="currentColor" strokeWidth={0.75} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {[0, 1].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 bg-gradient-to-br ${room.gradient} opacity-70 rounded-2xl`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mb-10">
+                <h2 className="font-serif text-2xl text-slate-900 mb-4">Về phòng này</h2>
+                <p className="text-slate-600 text-[17px] leading-relaxed">{room.description}</p>
+              </div>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+                <StatCard label="Diện tích" value={`${room.size} m²`} />
+                <StatCard label="Sức chứa" value={`${room.capacity} khách`} />
+                <StatCard label="Giường" value={room.bedType} />
+                <StatCard label="Tầm nhìn" value={room.view} />
+              </div>
+
+              {/* Amenities */}
+              <div>
+                <h2 className="font-serif text-2xl text-slate-900 mb-5">Tiện nghi</h2>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {room.amenities.map((a) => (
+                    <div key={a} className="flex items-center gap-3 text-slate-700 text-sm">
+                      <CheckIcon />
+                      {a}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: sticky booking card */}
+            <div>
+              <div className="sticky top-[88px]">
+                <div className="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.10)] border border-slate-100 overflow-hidden">
+                  {/* Price header */}
+                  <div className={`bg-gradient-to-br ${room.gradient} px-7 py-6`}>
+                    <p className="text-white/60 text-sm mb-1">Giá từ</p>
+                    <p className="text-white font-bold text-3xl font-serif">
+                      {formatPrice(room.price)}
+                    </p>
+                    <p className="text-white/60 text-sm">/đêm · bao gồm thuế</p>
+                  </div>
+
+                  {/* Booking form */}
+                  <div className="p-7 space-y-4">
+                    <label className="block">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+                        Nhận phòng
+                      </span>
+                      <input
+                        type="date"
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+                        Trả phòng
+                      </span>
+                      <input
+                        type="date"
+                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
+                        Số khách
+                      </span>
+                      <select className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 appearance-none">
+                        {Array.from({ length: room.capacity }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>{n} khách</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl transition-colors text-sm mt-2">
+                      Đặt phòng ngay
+                    </button>
+
+                    <p className="text-center text-xs text-slate-400">
+                      Đặt cọc 30% · Hủy miễn phí trước 48h
+                    </p>
+                  </div>
+                </div>
+
+                {/* Contact */}
+                <p className="text-center text-sm text-slate-500 mt-4">
+                  Cần tư vấn?{" "}
+                  <a href="tel:0256000000" className="text-emerald-600 font-semibold hover:underline">
+                    Gọi ngay
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Other rooms */}
+          <div className="mt-20">
+            <h2 className="font-serif text-2xl lg:text-3xl text-slate-900 mb-8">
+              Các loại phòng khác
+            </h2>
+            <div className="grid sm:grid-cols-3 gap-5">
+              {others.map((r) => (
+                <Link
+                  key={r.slug}
+                  href={`/phong/${r.slug}`}
+                  className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-slate-100 flex flex-col transition-all duration-200 hover:-translate-y-1"
+                >
+                  <div className={`h-36 bg-gradient-to-br ${r.gradient}`} />
+                  <div className="p-5">
+                    <h3 className="font-serif text-base font-semibold text-slate-900 mb-1">{r.name}</h3>
+                    <p className="text-emerald-700 font-bold text-sm">
+                      {formatPrice(r.price)}<span className="text-slate-400 font-normal">/đêm</span>
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <SiteFooter />
+    </>
+  );
+}

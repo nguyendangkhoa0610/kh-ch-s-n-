@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-serif: var(--font-lora);
+  --font-sans: var(--font-be-vietnam);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #fffbeb;
+  color: #0f172a;
+  font-family: var(--font-be-vietnam), "Be Vietnam Pro", sans-serif;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

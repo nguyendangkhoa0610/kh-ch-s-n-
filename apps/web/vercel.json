@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@tram-huong/web",
+  "framework": "nextjs",
+  "headers": [
+    {
+      "source": "/(.*)\\.(js|css|woff2|png|jpg|webp|avif|svg)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}

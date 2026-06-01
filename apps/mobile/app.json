@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Trầm Hương",
+    "slug": "tram-huong",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tramhuong",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1B4332"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tramhuong.resort",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Quét mã QR để mở khóa phòng và AR Discovery",
+        "NSFaceIDUsageDescription": "Xác thực để mở khóa phòng"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1B4332"
+      },
+      "package": "com.tramhuong.resort"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Xác thực để mở khóa phòng"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

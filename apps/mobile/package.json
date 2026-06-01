@@ -1,0 +1,36 @@
+{
+  "name": "@tram-huong/mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build": "expo export"
+  },
+  "dependencies": {
+    "expo": "~56.0.0",
+    "expo-router": "~56.0.0",
+    "expo-status-bar": "*",
+    "expo-haptics": "~56.0.0",
+    "expo-linear-gradient": "~56.0.0",
+    "expo-blur": "*",
+    "expo-camera": "~56.0.0",
+    "expo-local-authentication": "*",
+    "react": "^19.0.0",
+    "react-native": "~0.85.0",
+    "react-native-safe-area-context": "*",
+    "react-native-screens": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
+    "react-native-svg": "*",
+    "@react-native-async-storage/async-storage": "^3.0.0",
+    "zustand": "^5.0.0",
+    "@expo/vector-icons": "*"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "typescript": "^5.8.3",
+    "@types/react": "~18.3.0"
+  }
+}

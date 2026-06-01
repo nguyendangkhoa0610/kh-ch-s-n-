@@ -1,0 +1,220 @@
+// Prisma Schema — Trầm Hương Eco-Resort
+// Phase 1: Core models (SQLite for local dev — switch to postgresql when deploying)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id           String  @id @default(cuid())
+  email        String? @unique
+  phone        String? @unique
+  name         String
+  avatar       String?
+  role         String  @default("GUEST") // GUEST | STAFF | MANAGER | ADMIN
+  passwordHash String?
+
+  bookings         Booking[]
+  shifts           Shift[]
+  alerts           SOSAlert[]
+  sentMessages     Message[]        @relation("SentMessages")
+  incidentReports  IncidentReport[] @relation("IncidentReports")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model RoomType {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  basePrice   Int
+  capacity    Int
+  size        Int
+  amenities   String  // JSON array stored as string
+  images      String  // JSON array stored as string
+
+  rooms Room[]
+
+  @@map("room_types")
+}
+
+model Room {
+  id         String @id @default(cuid())
+  number     String @unique
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  status     String   @default("AVAILABLE") // AVAILABLE | OCCUPIED | MAINTENANCE
+  floor      Int      @default(1)
+
+  bookings Booking[]
+
+  @@map("rooms")
+}
+
+model Booking {
+  id     String @id @default(cuid())
+  code   String @unique
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  roomId String?
+  room   Room?  @relation(fields: [roomId], references: [id])
+
+  checkIn  DateTime
+  checkOut DateTime
+  guests   Int
+
+  totalAmount Int
+  status      String @default("PENDING") // PENDING | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED
+
+  payment    Payment?
+  activities ActivityBooking[]
+  digitalKey DigitalKey?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bookings")
+}
+
+model Activity {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String
+  price       Int
+  duration    Int
+  maxSlots    Int
+  category    String  // water | land | wellness | food
+  images      String  // JSON array stored as string
+  isActive    Boolean @default(true)
+
+  schedules ActivitySchedule[]
+
+  @@map("activities")
+}
+
+model ActivitySchedule {
+  id          String   @id @default(cuid())
+  activityId  String
+  activity    Activity @relation(fields: [activityId], references: [id])
+  startTime   DateTime
+  bookedSlots Int      @default(0)
+
+  bookings ActivityBooking[]
+
+  @@map("activity_schedules")
+}
+
+model ActivityBooking {
+  id         String           @id @default(cuid())
+  bookingId  String
+  booking    Booking          @relation(fields: [bookingId], references: [id])
+  scheduleId String
+  schedule   ActivitySchedule @relation(fields: [scheduleId], references: [id])
+  guests     Int
+
+  @@map("activity_bookings")
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id])
+  amount        Int
+  method        String    // VNPAY | MOMO | ZALOPAY | CASH
+  status        String    @default("PENDING") // PENDING | SUCCESS | FAILED | REFUNDED
+  transactionId String?
+  paidAt        DateTime?
+
+  @@map("payments")
+}
+
+model DigitalKey {
+  id         String    @id @default(cuid())
+  bookingId  String    @unique
+  booking    Booking   @relation(fields: [bookingId], references: [id])
+  token      String    @unique
+  qrCode     String
+  validFrom  DateTime
+  validUntil DateTime
+  revokedAt  DateTime?
+
+  unlockLogs UnlockLog[]
+
+  @@map("digital_keys")
+}
+
+model UnlockLog {
+  id         String     @id @default(cuid())
+  keyId      String
+  key        DigitalKey @relation(fields: [keyId], references: [id])
+  unlockedAt DateTime   @default(now())
+  doorId     String
+
+  @@map("unlock_logs")
+}
+
+model SOSAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  type        String    // SOS | INCIDENT | REQUEST
+  location    String    // JSON: { lat, lng, area }
+  message     String?
+  status      String    @default("NEW") // NEW | RESPONDING | RESOLVED
+  respondedBy String?
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("sos_alerts")
+}
+
+model Shift {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     User     @relation(fields: [staffId], references: [id])
+  startTime DateTime
+  endTime   DateTime
+  area      String
+  notes     String?
+
+  @@map("shifts")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  team      String   // "all" | "reception" | "beach" | "kitchen" | "housekeeping"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model IncidentReport {
+  id          String   @id @default(cuid())
+  reporterId  String
+  reporter    User     @relation("IncidentReports", fields: [reporterId], references: [id])
+  area        String
+  description String
+  photoUrl    String?
+  severity    String   @default("LOW") // LOW | MEDIUM | HIGH
+  status      String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED
+  createdAt   DateTime @default(now())
+
+  @@map("incident_reports")
+}
