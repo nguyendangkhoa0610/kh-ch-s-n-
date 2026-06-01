@@ -3,7 +3,13 @@ nixPkgs = ["nodejs_22"]
 
 [phases.install]
 cmds = [
-  "npm install -g pnpm@11.5.0 && pnpm install --frozen-lockfile && pnpm -C packages/database db:generate && pnpm -C api build"
+  "npx --yes pnpm@11.5.0 install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "npx pnpm@11.5.0 -C packages/database db:generate",
+  "npx pnpm@11.5.0 -C api build"
 ]
 
 [start]
