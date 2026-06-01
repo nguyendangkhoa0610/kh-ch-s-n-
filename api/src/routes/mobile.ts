@@ -216,7 +216,7 @@ mobileRouter.get('/bill', guestAuth, async (c) => {
       amount: roomAmount,
       date: booking.checkIn,
     },
-    ...booking.activities.map((ab) => ({
+    ...booking.activities.map((ab: { id: string; guests: number; schedule: { startTime: Date; activity: { name: string; price: number } } }) => ({
       id: ab.id,
       category: 'activity',
       description: `${ab.schedule.activity.name} × ${ab.guests} người`,

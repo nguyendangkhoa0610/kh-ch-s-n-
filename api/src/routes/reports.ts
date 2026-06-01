@@ -70,8 +70,8 @@ reportsRouter.get('/summary', async (c) => {
     data: {
       totalBookings,
       totalRevenue: totalRevenue._sum.totalAmount ?? 0,
-      roomsAvailable: rooms.filter((r) => r.status === 'AVAILABLE').length,
-      roomsOccupied: rooms.filter((r) => r.status === 'OCCUPIED').length,
+      roomsAvailable: rooms.filter((r: { status: string }) => r.status === 'AVAILABLE').length,
+      roomsOccupied: rooms.filter((r: { status: string }) => r.status === 'OCCUPIED').length,
       roomsTotal: rooms.length,
       recentBookings,
     },
