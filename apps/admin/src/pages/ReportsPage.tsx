@@ -86,7 +86,7 @@ export function ReportsPage() {
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} interval={days > 14 ? 6 : 1} />
               <YAxis tickFormatter={formatPrice} tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <Tooltip
-                formatter={(v: number) => [formatPriceFull(v), 'Doanh thu']}
+                formatter={(v) => [formatPriceFull(Number(v)), 'Doanh thu']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Area type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2.5} fill="url(#revenueGrad)" dot={false} activeDot={{ r: 4 }} />

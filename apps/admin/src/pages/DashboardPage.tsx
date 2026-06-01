@@ -109,7 +109,7 @@ export function DashboardPage() {
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis tickFormatter={formatPrice} tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <Tooltip
-                formatter={(v: number) => [formatPriceFull(v), 'Doanh thu']}
+                formatter={(v) => [formatPriceFull(Number(v)), 'Doanh thu']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2.5} dot={{ r: 3, fill: '#059669' }} activeDot={{ r: 5 }} />
@@ -126,7 +126,7 @@ export function DashboardPage() {
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
               <Tooltip
-                formatter={(v: number) => [v, 'Đặt phòng']}
+                formatter={(v) => [Number(v), 'Đặt phòng']}
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
               />
               <Bar dataKey="bookings" fill="#6ee7b7" radius={[4, 4, 0, 0]} />

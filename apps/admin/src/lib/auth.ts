@@ -32,7 +32,7 @@ export const useAuth = create<AuthStore>()(
 
       logout: () => set({ token: null, user: null }),
 
-      getHeaders: () => {
+      getHeaders: (): Record<string, string> => {
         const token = get().token
         return token
           ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }

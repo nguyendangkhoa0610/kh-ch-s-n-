@@ -24,16 +24,6 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
   return json.data
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`API error ${res.status}`)
-  const json = await res.json() as { data: T }
-  return json.data
-}
 
 export type Room = {
   id: string
