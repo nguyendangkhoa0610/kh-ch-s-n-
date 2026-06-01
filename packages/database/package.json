@@ -9,6 +9,7 @@
     "schema": "prisma/schema.prisma"
   },
   "scripts": {
+    "build": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push --skip-generate",
     "db:migrate": "prisma migrate dev",
