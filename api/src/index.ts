@@ -20,12 +20,27 @@ const app = new Hono().basePath('/api')
 // Middleware
 app.use('*', logger())
 app.use('*', prettyJSON())
+const ALLOWED_ORIGINS = [
+  // Local dev
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:8081',
+  // Production Vercel
+  'https://tram-huong-web.vercel.app',
+  'https://tram-huong-admin.vercel.app',
+  // Custom domain (khi có)
+  'https://tramhuong-resort.vn',
+  'https://www.tramhuong-resort.vn',
+  // Vercel preview URLs
+]
+
 app.use(
   '*',
   cors({
     origin: (origin) => {
-      const allowed = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8081']
-      if (!origin || allowed.some((o) => origin.startsWith(o))) return origin ?? '*'
+      if (!origin) return '*' // mobile app / curl
+      if (ALLOWED_ORIGINS.some((o) => origin.startsWith(o))) return origin
+      if (origin.endsWith('.vercel.app')) return origin // Vercel preview deployments
       return null
     },
     credentials: true,

@@ -137,7 +137,7 @@ bookingsRouter.post('/guest', async (c) => {
       ],
     },
     select: { roomId: true },
-  }).then((b) => b.map((x: { roomId: string | null }) => x.roomId).filter(Boolean) as string[])
+  }).then((rows: { roomId: string | null }[]) => rows.map(x => x.roomId).filter(Boolean) as string[])
 
   const availableRoom = await prisma.room.findFirst({
     where: {

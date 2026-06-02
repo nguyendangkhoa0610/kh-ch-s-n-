@@ -621,6 +621,9 @@ function SuccessState({
         )}
       </div>
 
+      {/* Auth upsell nếu chưa đăng nhập */}
+      <AuthUpsell code={code} email={info.email} />
+
       <div className="flex gap-3">
         <Link href="/" className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl text-sm text-center hover:border-slate-300 transition-colors">
           Về trang chủ
@@ -629,6 +632,32 @@ function SuccessState({
           Xem hoạt động
         </Link>
       </div>
+    </div>
+  );
+}
+
+function AuthUpsell({ code, email }: { code: string; email: string }) {
+  const { user } = useCustomerAuth();
+  if (user) {
+    return (
+      <div className="mb-5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700 text-left">
+        <p className="font-semibold mb-1">✅ Booking đã lưu vào tài khoản</p>
+        <Link href="/tai-khoan/dat-phong-cua-toi" className="text-emerald-600 font-semibold hover:underline text-xs">
+          Xem tất cả đặt phòng của tôi →
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700 text-left">
+      <p className="font-semibold mb-1">💡 Lưu booking vào tài khoản</p>
+      <p className="text-xs text-blue-600 mb-2">Tạo tài khoản để xem lại booking, nhận ưu đãi và check-in nhanh hơn.</p>
+      <Link
+        href={`/tai-khoan/dang-ky?email=${encodeURIComponent(email)}`}
+        className="inline-block text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full transition-colors"
+      >
+        Tạo tài khoản với email này →
+      </Link>
     </div>
   );
 }
