@@ -81,6 +81,7 @@ bookingsRouter.post('/guest', async (c) => {
     guests: number
     paymentMethod: string
     notes?: string
+    userId?: string // optional: link booking với account đã đăng nhập
   }>()
 
   // Validate
@@ -97,17 +98,27 @@ bookingsRouter.post('/guest', async (c) => {
     return c.json({ error: 'Ngày trả phòng phải sau ngày nhận phòng' }, 400)
   }
 
-  // Tìm hoặc tạo user khách
-  const user = await prisma.user.upsert({
-    where: { email: body.guestEmail },
-    update: { name: body.guestName, phone: body.guestPhone },
-    create: {
-      email: body.guestEmail,
-      name: body.guestName,
-      phone: body.guestPhone,
-      role: 'GUEST',
-    },
-  })
+  // Nếu đã đăng nhập → dùng account hiện tại, không tạo mới
+  let user: { id: string; name: string; email: string | null; phone: string | null }
+  if (body.userId) {
+    const existing = await prisma.user.findUnique({ where: { id: body.userId } })
+    if (existing) {
+      user = existing
+    } else {
+      user = await prisma.user.upsert({
+        where: { email: body.guestEmail },
+        update: { name: body.guestName, phone: body.guestPhone },
+        create: { email: body.guestEmail, name: body.guestName, phone: body.guestPhone, role: 'GUEST' },
+      })
+    }
+  } else {
+    // Tìm hoặc tạo user khách
+    user = await prisma.user.upsert({
+      where: { email: body.guestEmail },
+      update: { name: body.guestName, phone: body.guestPhone },
+      create: { email: body.guestEmail, name: body.guestName, phone: body.guestPhone, role: 'GUEST' },
+    })
+  }
 
   // Tìm phòng trống theo loại phòng
   const roomType = await prisma.roomType.findUnique({ where: { slug: body.roomSlug } })

@@ -12,6 +12,7 @@ const NAV_KEYS = [
   { href: "/thu-vien", key: "nav.gallery" },
   { href: "/ban-do", key: "nav.map" },
   { href: "/lap-lich", key: "nav.aiplan" },
+  { href: "/lien-he", key: "nav.contact" },
 ];
 
 export function SiteNav() {

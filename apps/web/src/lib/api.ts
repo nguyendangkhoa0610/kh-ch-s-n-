@@ -43,6 +43,7 @@ export type GuestBookingPayload = {
   guests: number;
   paymentMethod: string;
   notes?: string;
+  userId?: string; // truyền khi user đã đăng nhập để link booking với account
 };
 
 export type BookingResult = {

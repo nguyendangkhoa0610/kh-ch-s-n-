@@ -177,5 +177,26 @@ authRouter.patch('/customer/me', async (c) => {
   }
 })
 
+// POST /api/auth/customer/forgot-password
+authRouter.post('/customer/forgot-password', async (c) => {
+  const body = await c.req.json<{ email: string }>()
+  // Luôn trả 200 để tránh email enumeration attack
+  if (!body.email) return c.json({ success: true })
+
+  const user = await prisma.user.findUnique({
+    where: { email: body.email.toLowerCase() },
+    select: { id: true, name: true, email: true },
+  })
+
+  if (user && user.email) {
+    // TODO: Gửi email với link reset khi có domain thật
+    // Hiện tại log để debug
+    console.log(`[Auth] Password reset requested for: ${user.email}`)
+    // Khi implement đầy đủ: tạo token, lưu DB, gửi email qua Resend
+  }
+
+  return c.json({ success: true })
+})
+
 // GET /api/auth/me (placeholder cũ)
 authRouter.get('/me', (c) => c.json({ message: 'Dùng /api/auth/admin/me với Bearer token' }))

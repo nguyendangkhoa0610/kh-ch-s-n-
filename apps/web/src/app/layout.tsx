@@ -54,10 +54,10 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: `${BASE_URL}/og-image.jpg`,
+        url: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=85",
         width: 1200,
         height: 630,
-        alt: "Trầm Hương Eco-Resort",
+        alt: "Trầm Hương Eco-Resort — Bình Định",
       },
     ],
   },
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Trầm Hương Eco-Resort",
     description: "Khu nghỉ dưỡng sinh thái cao cấp tại Bình Định",
-    images: [`${BASE_URL}/og-image.jpg`],
+    images: ["https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=85"],
   },
   robots: {
     index: true,

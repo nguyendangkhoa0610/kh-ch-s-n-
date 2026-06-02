@@ -684,6 +684,7 @@ function BookingContent() {
         guests,
         paymentMethod,
         notes: guestInfo.notes,
+        userId: user?.id, // link booking với account nếu đã đăng nhập
       });
       setBookingCode(result.code);
       setBookingId(result.id);
