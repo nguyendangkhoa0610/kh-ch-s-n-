@@ -142,19 +142,27 @@ export function PaymentResult() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3">
           <Link
-            href="/"
-            className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl text-center text-sm hover:border-slate-300 transition-colors"
+            href={`/dat-phong/tra-cuu?code=${result.booking?.code ?? ''}`}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-center text-sm transition-colors"
           >
-            Về trang chủ
+            Tra cứu đặt phòng của tôi →
           </Link>
-          <Link
-            href="/hoat-dong"
-            className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-center text-sm transition-colors"
-          >
-            Xem hoạt động
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/"
+              className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl text-center text-sm hover:border-slate-300 transition-colors"
+            >
+              Về trang chủ
+            </Link>
+            <Link
+              href="/hoat-dong"
+              className="flex-1 py-3 border-2 border-emerald-200 text-emerald-700 font-semibold rounded-xl text-center text-sm hover:border-emerald-300 transition-colors"
+            >
+              Xem hoạt động
+            </Link>
+          </div>
         </div>
       </div>
     );

@@ -4,6 +4,7 @@ const EXPLORE_LINKS = [
   { href: "/hoat-dong", label: "Hoạt động" },
   { href: "/ban-do", label: "Bản đồ resort" },
   { href: "/dat-phong", label: "Đặt phòng" },
+  { href: "/dat-phong/tra-cuu", label: "Tra cứu đặt phòng" },
 ];
 
 function LogoMark() {

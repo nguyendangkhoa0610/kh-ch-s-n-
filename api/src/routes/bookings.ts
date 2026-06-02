@@ -16,6 +16,20 @@ bookingsRouter.get('/', async (c) => {
   return c.json({ data: bookings })
 })
 
+// GET /api/bookings/by-code/:code — tra cứu bằng mã đặt phòng (public)
+bookingsRouter.get('/by-code/:code', async (c) => {
+  const code = c.req.param('code').toUpperCase()
+  const booking = await prisma.booking.findFirst({
+    where: { code },
+    include: {
+      user: { select: { name: true, email: true, phone: true } },
+      room: { include: { roomType: { select: { name: true, slug: true } } } },
+    },
+  })
+  if (!booking) return c.json({ error: 'Không tìm thấy đặt phòng' }, 404)
+  return c.json({ data: booking })
+})
+
 // GET /api/bookings/:id
 bookingsRouter.get('/:id', async (c) => {
   const id = c.req.param('id')
