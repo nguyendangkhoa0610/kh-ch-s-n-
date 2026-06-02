@@ -52,6 +52,6 @@ test.describe("Homepage", () => {
     const res = await page.request.get("/robots.txt");
     expect(res.status()).toBe(200);
     const body = await res.text();
-    expect(body).toContain("User-agent");
+    expect(body).toContain("User-Agent");
   });
 });

@@ -281,7 +281,7 @@ export default function LapLichPage() {
           <div className="grid lg:grid-cols-[420px_1fr] gap-10 items-start">
 
             {/* Form */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-7 shadow-sm sticky top-[88px]">
+            <div data-testid="planner-form" className="bg-white rounded-3xl border border-slate-200 p-7 shadow-sm sticky top-[88px]">
               <h2 className="font-serif text-xl text-slate-900 mb-6">Thông tin chuyến đi</h2>
 
               {/* Nights */}
