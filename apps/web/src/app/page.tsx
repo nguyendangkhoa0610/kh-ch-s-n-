@@ -26,7 +26,7 @@ const RESORT_SCHEMA = {
   description:
     "Khu nghỉ dưỡng sinh thái cao cấp tại Bình Định, Việt Nam",
   url: BASE_URL,
-  telephone: "+84-256-XXX-XXXX",
+  telephone: "+84-932-183-605",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Bình Định",

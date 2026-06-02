@@ -27,6 +27,16 @@ export function SiteNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!accountOpen) return;
+    const close = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-account-menu]")) setAccountOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [accountOpen]);
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -105,7 +115,7 @@ export function SiteNav() {
 
           {/* Account */}
           {user ? (
-            <div className="relative">
+            <div className="relative" data-account-menu>
               <button
                 onClick={() => setAccountOpen(v => !v)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-colors text-sm font-semibold ${

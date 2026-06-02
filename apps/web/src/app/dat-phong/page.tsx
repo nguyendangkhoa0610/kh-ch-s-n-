@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ROOM_TYPES, type RoomType } from "@/lib/room-data";
 import { formatPrice, calcNights } from "@tram-huong/shared";
 import { createGuestBooking } from "@/lib/api";
+import { useCustomerAuth } from "@/lib/customer-auth";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -642,7 +643,20 @@ function BookingContent() {
   const [checkOut, setCheckOut] = useState(params.get("checkOut") ?? getTomorrowStr());
   const [guests, setGuests] = useState(Number(params.get("guests") ?? 2));
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
+  const { user } = useCustomerAuth();
   const [guestInfo, setGuestInfo] = useState<GuestInfo>({ name: "", email: "", phone: "", notes: "" });
+
+  // Auto-fill từ tài khoản đã đăng nhập
+  useEffect(() => {
+    if (user) {
+      setGuestInfo(prev => ({
+        ...prev,
+        name: prev.name || user.name,
+        email: prev.email || user.email,
+        phone: prev.phone || user.phone || "",
+      }));
+    }
+  }, [user]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("VNPAY");
   const [bookingCode, setBookingCode] = useState("");
   const [bookingId, setBookingId] = useState("");
