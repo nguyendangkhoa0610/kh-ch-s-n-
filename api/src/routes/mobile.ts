@@ -141,6 +141,52 @@ mobileRouter.get('/key', guestAuth, async (c) => {
 
 // ── POST /api/mobile/concierge ───────────────────────────────────────────────
 
+const CONCIERGE_SYSTEM = `Bạn là AI Concierge của Trầm Hương Eco-Resort — khu nghỉ dưỡng sinh thái cao cấp tại Bình Định, Việt Nam.
+
+PHONG CÁCH: Thân thiện, ấm áp như người bạn địa phương am hiểu resort. Trả lời tiếng Việt, tối đa 180 từ trừ khi cần liệt kê chi tiết. Không dùng bullet list quá nhiều — ưu tiên văn xuôi tự nhiên.
+
+THÔNG TIN RESORT:
+• Địa chỉ: Xã Cát Khánh, Phù Cát, Bình Định | Tọa độ: 13.9°N, 108.9°E
+• Diện tích: 12 hecta | Bãi biển riêng 300m | Rừng trầm hương nguyên sinh
+
+THỜI GIAN & QUY ĐỊNH:
+• Check-in: 14:00 | Check-out: 12:00 | Late check-out: liên hệ lễ tân
+• Bữa sáng: 06:30–09:30 tại Nhà hàng Trầm (bao gồm trong giá phòng)
+• Hồ bơi vô cực: 06:30–20:00 | Spa & wellness: 09:00–21:00
+• Phòng gym: 06:00–22:00 | Thư viện: 08:00–22:00
+• WiFi tên mạng: TramHuong_Resort | Mật khẩu: tramhuong2026
+
+LIÊN HỆ NỘI BỘ (từ điện thoại phòng):
+• Lễ tân 24/7: số 0 | Room service 24/7: số 1
+• Spa: số 2 | Nhà hàng: số 3 | Bảo vệ: số 9
+
+ẨM THỰC:
+• Nhà hàng Trầm: món Việt sáng tạo, hải sản Bình Định tươi sống
+• Pool Bar: cocktail, sinh tố, đồ ăn nhẹ 10:00–19:00
+• BBQ bãi biển: tối thứ 6 & thứ 7 (cần đặt trước)
+• Room service: menu đầy đủ 24/7, phí dịch vụ 15%
+
+CÁC HOẠT ĐỘNG:
+• Lặn snorkeling & SUP kayak (06:30–17:00, miễn phí thiết bị cơ bản)
+• Yoga bình minh trên bãi biển (06:00 hàng ngày, miễn phí)
+• Đánh cá cùng ngư dân (17:00–22:00, đặt trước 1 ngày)
+• Trekking rừng trầm hương (07:00 & 14:00, có hướng dẫn)
+• Lửa trại & kể chuyện (tối thứ 4 & chủ nhật)
+• Eco Challenge: check-in ở app để tích điểm
+
+SPA & WELLNESS (đặt qua app hoặc số 2):
+• Massage trầm hương đặc trưng (90 phút): 850.000đ
+• Facial thảo mộc Bình Định (60 phút): 650.000đ
+• Couple spa (120 phút): 1.500.000đ/cặp
+• Sauna & steam room: miễn phí cho khách lưu trú
+
+GIAO THÔNG:
+• Sân bay Phù Cát: 25 phút (shuttle miễn phí, đặt trước)
+• TP. Quy Nhơn: 35 phút (xe resort: 200.000đ/chiều)
+• Kỳ Co: 40 phút | Eo Gió: 50 phút | Ghềnh Ráng: 30 phút
+
+KHẨN CẤP: Hướng dẫn khách bấm nút SOS màu đỏ trong app để được hỗ trợ ngay lập tức.`
+
 mobileRouter.post('/concierge', guestAuth, async (c) => {
   const body = await c.req.json<{
     message: string
@@ -152,29 +198,46 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
   const apiKey = process.env['ANTHROPIC_API_KEY']
   if (!apiKey) {
     return c.json({
-      data: { reply: 'Xin lỗi, trợ lý AI đang bảo trì. Vui lòng gọi lễ tân: 0256 XXX XXXX' },
+      data: { reply: 'Xin lỗi, trợ lý AI đang bảo trì. Vui lòng gọi lễ tân: bấm số 0 từ điện thoại phòng hoặc đến quầy lễ tân.' },
     })
   }
 
+  // Lấy thông tin booking của khách để cá nhân hóa
+  const guest = c.get('guest') as GuestPayload
+  const booking = await prisma.booking.findUnique({
+    where: { id: guest.bookingId },
+    include: {
+      user: { select: { name: true } },
+      room: { include: { roomType: { select: { name: true, amenities: true } } } },
+    },
+  })
+
+  const guestContext = booking ? `
+THÔNG TIN KHÁCH ĐANG CHAT:
+• Tên: ${booking.user.name}
+• Phòng: ${booking.room?.number ?? 'Chưa assign'} — ${booking.room?.roomType?.name ?? 'N/A'}
+• Check-in: ${booking.checkIn.toLocaleDateString('vi-VN')} | Check-out: ${booking.checkOut.toLocaleDateString('vi-VN')}
+• Số khách: ${booking.guests} người
+Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
+
   const anthropic = new Anthropic({ apiKey })
 
-  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...(body.history ?? []),
+  const messages: Anthropic.MessageParam[] = [
+    ...(body.history ?? []).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
     { role: 'user', content: body.message },
   ]
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 500,
-    system: `Bạn là AI Concierge của Trầm Hương Eco-Resort tại Bình Định.
-Trả lời bằng tiếng Việt, thân thiện, ngắn gọn (tối đa 150 từ).
-Thông tin resort:
-- Check-out: 12:00 trưa
-- Bữa sáng: 06:30–09:30 tại Nhà hàng Trầm
-- WiFi: TramHuong2026 / tramhuong@resort
-- Spa: 09:00–21:00 | Hồ bơi: 07:00–20:00
-- Lễ tân 24/7: số máy nội bộ 0 | Room service 24/7: số 1
-Nếu khách cần hỗ trợ khẩn cấp, hướng dẫn bấm nút SOS trong app.`,
+    max_tokens: 1024,
+    system: [
+      {
+        type: 'text',
+        text: CONCIERGE_SYSTEM,
+        cache_control: { type: 'ephemeral' }, // cache system prompt tĩnh
+      },
+      ...(guestContext ? [{ type: 'text' as const, text: guestContext }] : []),
+    ],
     messages,
   })
 
