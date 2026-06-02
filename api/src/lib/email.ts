@@ -9,6 +9,8 @@ function getResend(): Resend | null {
 }
 
 const FROM = process.env['RESEND_FROM'] ?? 'Trầm Hương Resort <onboarding@resend.dev>'
+const SITE_URL = process.env['SITE_URL'] ?? 'https://tram-huong-web.vercel.app'
+const ADMIN_EMAIL = process.env['ADMIN_NOTIFY_EMAIL'] ?? 'admin@tramhuong.vn'
 
 // ─── QR Code ─────────────────────────────────────────────
 
@@ -173,7 +175,7 @@ function buildBookingEmail(params: {
           <!-- CTA -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
             <tr><td align="center">
-              <a href="http://localhost:3000/dat-phong" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:14px 36px;border-radius:9999px;">
+              <a href="${SITE_URL}/dat-phong" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:14px 36px;border-radius:9999px;">
                 Xem chi tiết đặt phòng →
               </a>
             </td></tr>
@@ -255,6 +257,83 @@ export type BookingEmailParams = {
   checkOut: string
   guests: number
   totalAmount: number
+}
+
+export type AdminNotifyParams = BookingEmailParams & { guestPhone: string }
+
+export async function sendAdminNotification(params: AdminNotifyParams): Promise<void> {
+  const client = getResend()
+  if (!client) return
+
+  const nights = calcNights(params.checkIn, params.checkOut)
+  const subject = `[Booking mới] ${params.bookingCode} — ${params.guestName}`
+
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="UTF-8"><title>${subject}</title></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1e293b;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+        <tr><td style="background:#1e3a5f;border-radius:16px 16px 0 0;padding:24px 36px;">
+          <p style="margin:0 0 2px;color:#93c5fd;font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;">Admin Alert</p>
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🏨 Booking mới — Trầm Hương</h1>
+        </td></tr>
+
+        <tr><td style="background:#ffffff;padding:32px 36px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+            <tr><td style="background:#f8fafc;padding:12px 18px;border-bottom:1px solid #e2e8f0;">
+              <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;">Thông tin booking</p>
+            </td></tr>
+            ${[
+              ['Mã booking', `<strong style="font-family:monospace;color:#059669;font-size:15px;">${params.bookingCode}</strong>`],
+              ['Khách', `${params.guestName} — ${params.guestPhone}`],
+              ['Email', params.guestEmail],
+              ['Phòng', params.roomName + (params.roomNumber ? ` (${params.roomNumber})` : '')],
+              ['Nhận phòng', formatDate(params.checkIn)],
+              ['Trả phòng', formatDate(params.checkOut)],
+              ['Số đêm', `${nights} đêm · ${params.guests} khách`],
+              ['Tổng tiền', `<strong style="color:#059669;">${formatPrice(params.totalAmount)}</strong>`],
+            ].map(([k, v], i) => `
+            <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+              <td style="padding:11px 18px;font-size:13px;color:#6b7280;width:38%;">${k}</td>
+              <td style="padding:11px 18px;font-size:13px;color:#0f172a;">${v}</td>
+            </tr>`).join('')}
+          </table>
+
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${SITE_URL.replace('tram-huong-web', 'tram-huong-admin')}/bookings"
+                style="display:inline-block;background:#1e3a5f;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:12px 28px;border-radius:9999px;">
+                Xem trong Admin Dashboard →
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="background:#1e3a5f;border-radius:0 0 16px 16px;padding:14px 36px;text-align:center;">
+          <p style="margin:0;color:#93c5fd;font-size:11px;">Trầm Hương Eco-Resort · Hệ thống quản lý</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const { error } = await client.emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject,
+    html,
+  })
+
+  if (error) {
+    console.error('[Email] Admin notify error:', error)
+  } else {
+    console.log(`[Email] Admin notified: ${params.bookingCode}`)
+  }
 }
 
 export async function sendBookingConfirmation(params: BookingEmailParams): Promise<void> {

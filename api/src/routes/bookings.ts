@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { prisma } from '@tram-huong/database'
 import { generateBookingCode } from '@tram-huong/shared/utils'
-import { sendBookingConfirmation } from '../lib/email.js'
+import { sendBookingConfirmation, sendAdminNotification } from '../lib/email.js'
 
 export const bookingsRouter = new Hono()
 
@@ -122,8 +122,8 @@ bookingsRouter.post('/guest', async (c) => {
     },
   })
 
-  // Gửi email xác nhận (non-blocking)
-  sendBookingConfirmation({
+  // Gửi email xác nhận khách + thông báo admin (non-blocking, song song)
+  const emailParams = {
     guestName: user.name,
     guestEmail: user.email ?? body.guestEmail,
     bookingCode: booking.code,
@@ -133,7 +133,11 @@ bookingsRouter.post('/guest', async (c) => {
     checkOut: body.checkOut,
     guests: body.guests,
     totalAmount,
-  }).catch((err) => console.error('[Email] Failed:', err))
+  }
+  Promise.all([
+    sendBookingConfirmation(emailParams),
+    sendAdminNotification({ ...emailParams, guestPhone: body.guestPhone }),
+  ]).catch((err) => console.error('[Email] Failed:', err))
 
   return c.json({ data: booking }, 201)
 })
