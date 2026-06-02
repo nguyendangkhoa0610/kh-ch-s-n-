@@ -7,6 +7,8 @@ import { AboutSection } from "@/components/about-section";
 import { ExperienceSection } from "@/components/experience-section";
 import { RoomTypesSection } from "@/components/room-types-section";
 import { ActivitiesSection } from "@/components/activities-section";
+import { ReviewsSection } from "@/components/reviews-section";
+import { ZaloButton } from "@/components/zalo-button";
 import { SiteFooter } from "@/components/site-footer";
 import { JsonLd } from "@/components/json-ld";
 
@@ -58,7 +60,9 @@ export default function HomePage() {
         <ExperienceSection />
         <RoomTypesSection />
         <ActivitiesSection />
+        <ReviewsSection />
       </main>
+      <ZaloButton />
       <SiteFooter />
     </>
   );
