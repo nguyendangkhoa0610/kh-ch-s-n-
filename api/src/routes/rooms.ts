@@ -57,6 +57,46 @@ roomsRouter.patch('/types/:id', async (c) => {
   return c.json({ data: roomType })
 })
 
+// POST /api/rooms — thêm phòng mới
+roomsRouter.post('/', async (c) => {
+  const body = await c.req.json<{
+    number: string; floor: number; roomTypeId: string; status?: string
+  }>()
+  if (!body.number || !body.roomTypeId) {
+    return c.json({ error: 'Thiếu số phòng hoặc loại phòng' }, 400)
+  }
+  const existing = await prisma.room.findUnique({ where: { number: body.number } })
+  if (existing) return c.json({ error: `Phòng ${body.number} đã tồn tại` }, 409)
+
+  const room = await prisma.room.create({
+    data: {
+      number: body.number,
+      floor: body.floor ?? 1,
+      roomTypeId: body.roomTypeId,
+      status: (body.status as 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE') ?? 'AVAILABLE',
+    },
+    include: { roomType: true },
+  })
+  return c.json({ data: room }, 201)
+})
+
+// DELETE /api/rooms/:id — xóa phòng
+roomsRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id')
+  const room = await prisma.room.findUnique({ where: { id } })
+  if (!room) return c.json({ error: 'Phòng không tồn tại' }, 404)
+
+  const activeBooking = await prisma.booking.findFirst({
+    where: { roomId: id, status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN'] } },
+  })
+  if (activeBooking) {
+    return c.json({ error: 'Phòng đang có booking đang hoạt động, không thể xóa' }, 409)
+  }
+
+  await prisma.room.delete({ where: { id } })
+  return c.json({ success: true })
+})
+
 // PATCH /api/rooms/:id/status
 roomsRouter.patch('/:id/status', async (c) => {
   const id = c.req.param('id')

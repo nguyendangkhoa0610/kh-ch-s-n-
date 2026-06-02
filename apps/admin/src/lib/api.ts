@@ -13,6 +13,28 @@ async function get<T>(path: string): Promise<T> {
   return json.data
 }
 
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const json = await res.json() as { error?: string }
+    throw new Error(json.error ?? `API error ${res.status}`)
+  }
+  const json = await res.json() as { data: T }
+  return json.data
+}
+
+async function del(path: string): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: headers() })
+  if (!res.ok) {
+    const json = await res.json() as { error?: string }
+    throw new Error(json.error ?? `API error ${res.status}`)
+  }
+}
+
 async function patch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PATCH',
@@ -80,6 +102,9 @@ export const api = {
     patch<Room>(`/rooms/${id}/status`, { status }),
   updateRoomType: (id: string, data: Partial<Omit<RoomType, 'id' | 'slug'> & { amenities: string[]; images: string[] }>) =>
     patch<RoomType>(`/rooms/types/${id}`, data),
+  createRoom: (data: { number: string; floor: number; roomTypeId: string }) =>
+    post<Room>('/rooms', data),
+  deleteRoom: (id: string) => del(`/rooms/${id}`),
 
   getBookings: (status?: string) =>
     get<Booking[]>('/bookings' + (status ? `?status=${status}` : '')),

@@ -170,6 +170,61 @@ function Field({ label, value, onChange, placeholder, type = 'text' }: {
   )
 }
 
+// ── Add Room Modal ─────────────────────────────────────────────────────────
+function AddRoomModal({ roomType, onClose, onAdd }: {
+  roomType: RoomType
+  onClose: () => void
+  onAdd: (room: Room) => void
+}) {
+  const [number, setNumber] = useState('')
+  const [floor, setFloor] = useState('1')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function handleAdd() {
+    if (!number.trim()) { setErr('Vui lòng nhập số phòng'); return }
+    setSaving(true); setErr('')
+    try {
+      const room = await api.createRoom({ number: number.trim(), floor: Number(floor), roomTypeId: roomType.id })
+      onAdd(room)
+      onClose()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Thêm phòng thất bại')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="font-semibold text-slate-900 mb-1">Thêm phòng mới</h3>
+        <p className="text-xs text-slate-400 mb-5">Loại: {roomType.name}</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Số phòng *</label>
+            <input autoFocus value={number} onChange={e => setNumber(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              placeholder="VD: B04, S04..."
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Tầng</label>
+            <input type="number" min="1" max="10" value={floor} onChange={e => setFloor(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+        {err && <p className="mt-3 text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{err}</p>}
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose} className="flex-1 py-2.5 text-sm text-slate-600 font-medium border border-slate-200 rounded-xl hover:bg-slate-50">Hủy</button>
+          <button onClick={handleAdd} disabled={saving}
+            className="flex-1 py-2.5 text-sm text-white font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl transition-colors">
+            {saving ? 'Đang thêm...' : '+ Thêm phòng'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 export function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
@@ -178,6 +233,8 @@ export function RoomsPage() {
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
   const [editingType, setEditingType] = useState<RoomType | null>(null)
+  const [addingToType, setAddingToType] = useState<RoomType | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([api.getRooms(), api.getRoomTypes()])
@@ -201,6 +258,17 @@ export function RoomsPage() {
     setRoomTypes(prev => prev.map(t => t.id === id ? updated : t))
   }
 
+  async function handleDeleteRoom(room: Room) {
+    if (!confirm(`Xóa phòng ${room.number}? Hành động này không thể hoàn tác.`)) return
+    setDeleting(room.id)
+    try {
+      await api.deleteRoom(room.id)
+      setRooms(prev => prev.filter(r => r.id !== room.id))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Xóa phòng thất bại')
+    } finally { setDeleting(null) }
+  }
+
   const byType = rooms.reduce<Record<string, Room[]>>((acc, r) => {
     const key = r.roomType.name
     if (!acc[key]) acc[key] = []
@@ -219,6 +287,10 @@ export function RoomsPage() {
     <div>
       {editingType && (
         <EditRoomTypeModal roomType={editingType} onClose={() => setEditingType(null)} onSave={saveRoomType} />
+      )}
+      {addingToType && (
+        <AddRoomModal roomType={addingToType} onClose={() => setAddingToType(null)}
+          onAdd={room => setRooms(prev => [...prev, room])} />
       )}
 
       <h2 className="text-2xl font-bold text-slate-900 mb-6" style={{ fontFamily: 'Lora, serif' }}>Quản lý Phòng</h2>
@@ -276,23 +348,37 @@ export function RoomsPage() {
                     </div>
                   </div>
                   {dbType && (
-                    <button onClick={() => setEditingType(dbType)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                      </svg>
-                      Chỉnh sửa
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setAddingToType(dbType)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
+                        + Phòng
+                      </button>
+                      <button onClick={() => setEditingType(dbType)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                        </svg>
+                        Chỉnh sửa
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="p-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                   {typeRooms.map(room => {
                     const meta = STATUS_META[room.status as RoomStatus]
                     return (
-                      <div key={room.id} className={`rounded-xl border p-3 ${meta.badge}`}>
+                      <div key={room.id} className={`rounded-xl border p-3 ${meta.badge} relative group`}>
+                        {room.status !== 'OCCUPIED' && (
+                          <button
+                            onClick={() => handleDeleteRoom(room)}
+                            disabled={deleting === room.id}
+                            title="Xóa phòng"
+                            className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-red-100 text-red-400 hover:bg-red-200 hover:text-red-600 text-xs hidden group-hover:flex items-center justify-center transition-colors disabled:opacity-50"
+                          >✕</button>
+                        )}
                         <p className="font-bold text-base mb-1">{room.number}</p>
                         <p className="text-[11px] font-medium mb-2">{meta.label}</p>
-                        <select value={room.status} disabled={updating === room.id}
+                        <select value={room.status} disabled={updating === room.id || deleting === room.id}
                           onChange={e => setStatus(room, e.target.value as RoomStatus)}
                           className="w-full text-[10px] border border-current/20 rounded-md px-1.5 py-1 bg-white/70 cursor-pointer disabled:opacity-50">
                           <option value="AVAILABLE">Trống</option>
