@@ -39,7 +39,8 @@
         {
           "faceIDPermission": "Xác thực để mở khóa phòng"
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

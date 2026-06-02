@@ -2,6 +2,9 @@ import { Hono } from 'hono'
 import { prisma } from '@tram-huong/database'
 import { generateBookingCode } from '@tram-huong/shared/utils'
 import { sendBookingConfirmation, sendAdminNotification } from '../lib/email.js'
+import { verify } from 'hono/jwt'
+
+const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
 
 export const bookingsRouter = new Hono()
 
@@ -14,6 +17,26 @@ bookingsRouter.get('/', async (c) => {
     orderBy: { createdAt: 'desc' },
   })
   return c.json({ data: bookings })
+})
+
+// GET /api/bookings/my — lấy bookings của customer đang đăng nhập
+bookingsRouter.get('/my', async (c) => {
+  const header = c.req.header('Authorization')
+  if (!header?.startsWith('Bearer ')) return c.json({ error: 'Chưa đăng nhập' }, 401)
+  try {
+    const payload = await verify(header.slice(7), JWT_SECRET, 'HS256')
+    const bookings = await prisma.booking.findMany({
+      where: { userId: payload['sub'] as string },
+      include: {
+        room: { include: { roomType: { select: { name: true, slug: true } } } },
+        payment: { select: { status: true, amount: true, method: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return c.json({ data: bookings })
+  } catch {
+    return c.json({ error: 'Token không hợp lệ' }, 401)
+  }
 })
 
 // GET /api/bookings/by-code/:code — tra cứu bằng mã đặt phòng (public)
