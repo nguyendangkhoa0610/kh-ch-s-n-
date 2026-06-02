@@ -23,7 +23,13 @@
       "adaptiveIcon": {
         "backgroundColor": "#1B4332"
       },
-      "package": "com.tramhuong.resort"
+      "package": "com.tramhuong.resort",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -37,6 +43,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "86f54656-3a13-4d4a-94cb-46c7c880493c"
+      }
+    },
+    "owner": "khoa2431540003"
   }
 }
