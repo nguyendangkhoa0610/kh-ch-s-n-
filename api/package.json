@@ -16,6 +16,7 @@
     "@tram-huong/database": "workspace:*",
     "@tram-huong/shared": "workspace:*",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "hono": "^4.12.23",
     "qrcode": "^1.5.4",
     "resend": "^6.12.4",

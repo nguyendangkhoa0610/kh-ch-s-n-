@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -105,10 +106,16 @@ export default function HoatDongPage() {
                   className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-100 flex flex-col transition-all duration-300 hover:-translate-y-1.5"
                 >
                   {/* Thumbnail */}
-                  <div
-                    className={`relative h-48 bg-gradient-to-br ${act.gradient} flex items-center justify-center text-6xl select-none`}
-                  >
-                    {act.emoji}
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src={act.image}
+                      alt={act.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <span className="absolute bottom-4 left-4 text-3xl">{act.emoji}</span>
                     {/* Category badge */}
                     <span
                       className={`absolute top-4 left-4 flex items-center gap-1 text-[11px] font-semibold px-3 py-1 rounded-full border ${cat.bg} ${cat.color}`}

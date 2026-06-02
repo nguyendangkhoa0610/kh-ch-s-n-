@@ -174,10 +174,7 @@ export function RealtimeBar() {
             )}
             <div className="text-xs text-slate-400">
               Cập nhật lúc{" "}
-              {new Date(status.updatedAt).toLocaleTimeString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {(() => { const d = new Date(status.updatedAt); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()}
             </div>
           </div>
         )}

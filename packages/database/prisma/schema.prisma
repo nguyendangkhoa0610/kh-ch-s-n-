@@ -34,15 +34,19 @@ model User {
 }
 
 model RoomType {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String  @unique
+  tagline     String  @default("")
   description String
   basePrice   Int
   capacity    Int
   size        Int
+  bedType     String  @default("")
+  view        String  @default("")
   amenities   String  // JSON array stored as string
   images      String  // JSON array stored as string
+  badge       String?
 
   rooms Room[]
 

@@ -31,6 +31,32 @@ roomsRouter.get('/:id', async (c) => {
   return c.json({ data: room })
 })
 
+// PATCH /api/rooms/types/:id — cập nhật thông tin loại phòng
+roomsRouter.patch('/types/:id', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json<{
+    name?: string; tagline?: string; description?: string
+    basePrice?: number; capacity?: number; size?: number
+    bedType?: string; view?: string; badge?: string | null
+    amenities?: string[]; images?: string[]
+  }>()
+  const data: Record<string, unknown> = {}
+  if (body.name !== undefined) data.name = body.name
+  if (body.tagline !== undefined) data.tagline = body.tagline
+  if (body.description !== undefined) data.description = body.description
+  if (body.basePrice !== undefined) data.basePrice = Number(body.basePrice)
+  if (body.capacity !== undefined) data.capacity = Number(body.capacity)
+  if (body.size !== undefined) data.size = Number(body.size)
+  if (body.bedType !== undefined) data.bedType = body.bedType
+  if (body.view !== undefined) data.view = body.view
+  if ('badge' in body) data.badge = body.badge ?? null
+  if (body.amenities !== undefined) data.amenities = JSON.stringify(body.amenities)
+  if (body.images !== undefined) data.images = JSON.stringify(body.images)
+
+  const roomType = await prisma.roomType.update({ where: { id }, data })
+  return c.json({ data: roomType })
+})
+
 // PATCH /api/rooms/:id/status
 roomsRouter.patch('/:id/status', async (c) => {
   const id = c.req.param('id')

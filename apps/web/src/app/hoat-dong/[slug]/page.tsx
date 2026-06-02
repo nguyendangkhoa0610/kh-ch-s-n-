@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -60,13 +61,9 @@ export default async function ActivityDetailPage({ params }: Props) {
       <SiteNav />
 
       {/* Hero */}
-      <section className={`pt-[72px] bg-gradient-to-br ${act.gradient} relative overflow-hidden`}>
-        <div className="absolute inset-0">
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15"
-            style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }}
-          />
-        </div>
+      <section className="pt-[72px] relative overflow-hidden bg-slate-900" style={{ minHeight: 380 }}>
+        <Image src={act.image} alt={act.name} fill priority sizes="100vw" className="object-cover opacity-55" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-white/50 text-sm mb-8">
@@ -168,8 +165,9 @@ export default async function ActivityDetailPage({ params }: Props) {
                         href={`/hoat-dong/${o.slug}`}
                         className="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
                       >
-                        <div className={`h-24 bg-gradient-to-br ${o.gradient} flex items-center justify-center text-4xl`}>
-                          {o.emoji}
+                        <div className="relative h-24 overflow-hidden">
+                          <Image src={o.image} alt={o.name} fill sizes="200px" className="object-cover" />
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center text-3xl">{o.emoji}</div>
                         </div>
                         <div className="p-4">
                           <p className="font-semibold text-slate-900 text-sm mb-1">{o.name}</p>
@@ -189,7 +187,8 @@ export default async function ActivityDetailPage({ params }: Props) {
               <div className="sticky top-[88px] space-y-4">
                 <div className="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.10)] border border-slate-100 overflow-hidden">
                   {/* Price header */}
-                  <div className={`bg-gradient-to-br ${act.gradient} px-7 py-6`}>
+                  <div className="relative px-7 py-6 bg-emerald-800 overflow-hidden">
+                    <Image src={act.image} alt={act.name} fill sizes="400px" className="object-cover opacity-30" />
                     <p className="text-white/60 text-sm mb-1">Giá mỗi người</p>
                     <p className="text-white font-bold text-3xl font-serif">
                       {act.price === 0 ? "Miễn phí" : formatPrice(act.price)}

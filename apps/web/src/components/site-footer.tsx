@@ -49,24 +49,25 @@ export function SiteFooter() {
               Hương của núi rừng, hồn của Bình Định. Khu nghỉ dưỡng sinh thái
               cao cấp giữa thiên nhiên thuần khiết.
             </p>
-            {/* Social links (placeholder) */}
             <div className="flex items-center gap-3">
-              {["Facebook", "Instagram", "YouTube"].map((s) => (
-                <a
-                  key={s}
-                  href="#"
-                  aria-label={s}
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="6" opacity="0.6" />
-                  </svg>
-                </a>
-              ))}
+              <a href="https://facebook.com/tramhuongresort" target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                </svg>
+              </a>
+              <a href="https://instagram.com/tramhuongresort" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+                </svg>
+              </a>
+              <a href="https://zalo.me/tramhuongresort" target="_blank" rel="noopener noreferrer" aria-label="Zalo"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200">
+                <span className="text-[11px] font-bold">Zalo</span>
+              </a>
             </div>
           </div>
 
@@ -130,7 +131,7 @@ export function SiteFooter() {
                     d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
                   />
                 </svg>
-                <span>0256 xxx xxxx</span>
+                <a href="tel:0932183605" className="hover:text-white transition-colors">0932 183 605</a>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/55">
                 <svg
@@ -158,10 +159,10 @@ export function SiteFooter() {
             © 2026 Trầm Hương Eco-Resort. Bảo lưu mọi quyền.
           </p>
           <div className="flex items-center gap-6 text-xs text-white/35">
-            <a href="#" className="hover:text-white/60 transition-colors">
+            <a href="/chinh-sach-bao-mat" className="hover:text-white/60 transition-colors">
               Chính sách bảo mật
             </a>
-            <a href="#" className="hover:text-white/60 transition-colors">
+            <a href="/dieu-khoan-dich-vu" className="hover:text-white/60 transition-colors">
               Điều khoản dịch vụ
             </a>
           </div>

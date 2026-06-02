@@ -12,6 +12,7 @@ export type RoomType = {
   view: string;
   amenities: string[];
   gradient: string;
+  images: string[]; // [main, gallery1, gallery2] — thay bằng URL ảnh thật của bạn
   badge?: string;
 };
 
@@ -38,6 +39,11 @@ export const ROOM_TYPES: RoomType[] = [
       "Máy pha cà phê",
     ],
     gradient: "from-cyan-900 via-teal-800 to-emerald-900",
+    images: [
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=85",
+      "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&q=80",
+      "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80",
+    ],
     badge: "Phổ biến nhất",
   },
   {
@@ -61,6 +67,11 @@ export const ROOM_TYPES: RoomType[] = [
       "Ấm đun nước",
     ],
     gradient: "from-emerald-950 via-green-900 to-lime-950",
+    images: [
+      "https://images.unsplash.com/photo-1449030799261-7a76dab48b2a?w=1200&q=85",
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+      "https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=800&q=80",
+    ],
   },
   {
     slug: "villa-gia-dinh",
@@ -84,6 +95,11 @@ export const ROOM_TYPES: RoomType[] = [
       "BBQ ngoài trời",
     ],
     gradient: "from-amber-950 via-orange-900 to-red-950",
+    images: [
+      "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1200&q=85",
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
+      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
+    ],
     badge: "Cho gia đình",
   },
   {
@@ -106,6 +122,11 @@ export const ROOM_TYPES: RoomType[] = [
       "Minibar",
     ],
     gradient: "from-indigo-950 via-violet-900 to-slate-900",
+    images: [
+      "https://images.unsplash.com/photo-1551918120-9739cb430c6d?w=1200&q=85",
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80",
+      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=800&q=80",
+    ],
     badge: "Độc đáo nhất",
   },
   {
@@ -127,6 +148,11 @@ export const ROOM_TYPES: RoomType[] = [
       "Bàn ngoài trời",
     ],
     gradient: "from-lime-900 via-green-800 to-teal-900",
+    images: [
+      "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1200&q=85",
+      "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?w=800&q=80",
+      "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=800&q=80",
+    ],
   },
   {
     slug: "suite-tram-huong",
@@ -150,6 +176,11 @@ export const ROOM_TYPES: RoomType[] = [
       "Spa 1 lần/ngày",
     ],
     gradient: "from-stone-900 via-amber-950 to-yellow-950",
+    images: [
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1200&q=85",
+      "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80",
+      "https://images.unsplash.com/photo-1590381105924-c72589b81ef1?w=800&q=80",
+    ],
     badge: "Luxury",
   },
 ];

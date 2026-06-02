@@ -24,12 +24,8 @@ type VerifyResult = {
 };
 
 function formatDate(s: string) {
-  return new Date(s).toLocaleDateString("vi-VN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const d = new Date(s);
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
 
 export function PaymentResult() {

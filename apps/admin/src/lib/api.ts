@@ -25,6 +25,22 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
 }
 
 
+export type RoomType = {
+  id: string
+  name: string
+  slug: string
+  tagline: string
+  description: string
+  basePrice: number
+  capacity: number
+  size: number
+  bedType: string
+  view: string
+  amenities: string // JSON string
+  images: string   // JSON string
+  badge: string | null
+}
+
 export type Room = {
   id: string
   number: string
@@ -59,9 +75,11 @@ export type Summary = {
 
 export const api = {
   getRooms: () => get<Room[]>('/rooms'),
-  getRoomTypes: () => get<unknown[]>('/rooms/types'),
+  getRoomTypes: () => get<RoomType[]>('/rooms/types'),
   updateRoomStatus: (id: string, status: string) =>
     patch<Room>(`/rooms/${id}/status`, { status }),
+  updateRoomType: (id: string, data: Partial<Omit<RoomType, 'id' | 'slug'> & { amenities: string[]; images: string[] }>) =>
+    patch<RoomType>(`/rooms/types/${id}`, data),
 
   getBookings: (status?: string) =>
     get<Booking[]>('/bookings' + (status ? `?status=${status}` : '')),

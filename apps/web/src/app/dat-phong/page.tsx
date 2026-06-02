@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
@@ -34,12 +35,9 @@ function getTomorrowStr() {
 }
 
 function formatDate(str: string) {
-  return new Date(str + "T00:00:00").toLocaleDateString("vi-VN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const [y, m, d] = str.split("-").map(Number);
+  // Dùng format cố định tránh hydration mismatch giữa server/client
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
 }
 
 const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; logo: string; desc: string }[] = [
@@ -200,7 +198,8 @@ function Step1Room({
               }`}
               onClick={() => fits && onSelect(room)}
             >
-              <div className={`h-36 bg-gradient-to-br ${room.gradient} relative flex items-center justify-center`}>
+              <div className="h-36 relative overflow-hidden">
+                <Image src={room.images[0]} alt={room.name} fill sizes="400px" className="object-cover" />
                 {!fits && (
                   <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
                     <span className="text-white text-sm font-semibold bg-slate-800/80 px-3 py-1 rounded-full">
@@ -252,6 +251,32 @@ function Step1Room({
   );
 }
 
+// ─── Field component (phải để NGOÀI Step2Guest, không được định nghĩa bên trong) ───
+function GuestField({
+  label, value, onChange, type = "text", placeholder, required = true, error,
+}: {
+  label: string; value: string; onChange: (v: string) => void
+  type?: string; placeholder: string; required?: boolean; error?: string
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-semibold text-slate-700">
+        {label}{required && <span className="text-rose-500 ml-1">*</span>}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
+          error ? "border-rose-400 bg-rose-50" : "border-slate-200 bg-slate-50"
+        }`}
+      />
+      {error && <span className="text-xs text-rose-500">{error}</span>}
+    </label>
+  )
+}
+
 // ─── Step 2: Guest info ───────────────────────────────────
 
 function Step2Guest({
@@ -282,45 +307,12 @@ function Step2Guest({
     if (validate()) onNext();
   }
 
-  const Field = ({
-    label,
-    field,
-    type = "text",
-    placeholder,
-    required = true,
-  }: {
-    label: string;
-    field: keyof GuestInfo;
-    type?: string;
-    placeholder: string;
-    required?: boolean;
-  }) => (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-slate-700">
-        {label}
-        {required && <span className="text-rose-500 ml-1">*</span>}
-      </span>
-      <input
-        type={type}
-        value={info[field]}
-        onChange={(e) => onChange({ [field]: e.target.value })}
-        placeholder={placeholder}
-        className={`border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
-          errors[field] ? "border-rose-400 bg-rose-50" : "border-slate-200 bg-slate-50"
-        }`}
-      />
-      {errors[field] && (
-        <span className="text-xs text-rose-500">{errors[field]}</span>
-      )}
-    </label>
-  );
-
   return (
     <div className="max-w-lg mx-auto">
       <div className="bg-white rounded-2xl border border-slate-200 p-7 space-y-5">
-        <Field label="Họ và tên" field="name" placeholder="Nguyễn Văn A" />
-        <Field label="Email" field="email" type="email" placeholder="email@example.com" />
-        <Field label="Số điện thoại" field="phone" type="tel" placeholder="0901 234 567" />
+        <GuestField label="Họ và tên" value={info.name} onChange={v => onChange({ name: v })} placeholder="Nguyễn Văn A" error={errors.name} />
+        <GuestField label="Email" value={info.email} onChange={v => onChange({ email: v })} type="email" placeholder="email@example.com" error={errors.email} />
+        <GuestField label="Số điện thoại" value={info.phone} onChange={v => onChange({ phone: v })} type="tel" placeholder="0901 234 567" error={errors.phone} />
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold text-slate-700">Yêu cầu đặc biệt</span>
           <textarea
@@ -390,7 +382,7 @@ function Step3Confirm({
         <div className="space-y-4">
           {/* Room summary */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className={`h-28 bg-gradient-to-br ${room.gradient}`} />
+            <div className="h-28 relative overflow-hidden"><Image src={room.images[0]} alt={room.name} fill sizes="600px" className="object-cover" /></div>
             <div className="p-5">
               <h3 className="font-serif text-lg font-semibold text-slate-900 mb-1">{room.name}</h3>
               <div className="text-sm text-slate-500 space-y-1">
@@ -567,7 +559,7 @@ function SuccessState({
 
       {/* Booking card */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6 text-left">
-        <div className={`h-20 bg-gradient-to-br ${room.gradient}`} />
+        <div className="h-20 relative overflow-hidden"><Image src={room.images[0]} alt={room.name} fill sizes="600px" className="object-cover" /></div>
         <div className="p-6 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mã đặt phòng</span>

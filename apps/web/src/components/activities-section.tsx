@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ACTIVITIES, CATEGORY_META } from "@/lib/activity-data";
 import { formatPrice } from "@tram-huong/shared";
@@ -67,13 +68,17 @@ export function ActivitiesSection() {
                 className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-slate-100 flex flex-col transition-all duration-200 hover:-translate-y-1"
               >
                 {/* Thumbnail */}
-                <div
-                  className={`h-32 bg-gradient-to-br ${act.gradient} flex items-center justify-center text-5xl select-none relative`}
-                >
-                  {act.emoji}
-                  <span
-                    className={`absolute top-3 left-3 flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}
-                  >
+                <div className="relative h-32 overflow-hidden">
+                  <Image
+                    src={act.image}
+                    alt={act.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                  <span className="absolute bottom-2 left-3 text-2xl">{act.emoji}</span>
+                  <span className={`absolute top-3 left-3 flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}>
                     {cat.label}
                   </span>
                 </div>

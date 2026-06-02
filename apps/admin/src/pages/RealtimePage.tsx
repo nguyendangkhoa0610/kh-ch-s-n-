@@ -20,7 +20,7 @@ export function RealtimePage() {
 
   function load() {
     fetch(`${BASE}/staff/realtime`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then((j: { data: Settings }) => {
         setSettings(j.data)
         setLocalCrowd(j.data.crowdLevel)

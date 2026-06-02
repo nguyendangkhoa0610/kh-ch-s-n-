@@ -313,25 +313,18 @@ export default function GioiThieuPage() {
                   Chúng tôi có dịch vụ đưa đón từ sân bay và ga tàu theo yêu cầu.
                 </p>
               </div>
-              {/* Map placeholder */}
-              <div className="h-80 bg-gradient-to-br from-emerald-900 to-teal-800 rounded-3xl flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20">
-                  <svg viewBox="0 0 400 300" className="w-full h-full">
-                    <path d="M0 150 Q100 100 200 150 Q300 200 400 150" stroke="white" strokeWidth="1" fill="none" />
-                    <path d="M0 180 Q100 130 200 180 Q300 230 400 180" stroke="white" strokeWidth="0.5" fill="none" opacity="0.5" />
-                    <circle cx="200" cy="150" r="8" fill="#34d399" />
-                    <circle cx="200" cy="150" r="16" fill="none" stroke="#34d399" strokeWidth="2" opacity="0.5" />
-                    <circle cx="200" cy="150" r="30" fill="none" stroke="#34d399" strokeWidth="1" opacity="0.3" />
-                  </svg>
-                </div>
-                <div className="relative text-center text-white">
-                  <div className="w-12 h-12 bg-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">📍</span>
-                  </div>
-                  <p className="font-semibold">Trầm Hương Eco-Resort</p>
-                  <p className="text-white/60 text-sm">Phù Cát, Bình Định</p>
-                  <p className="text-xs text-white/40 mt-3">Bản đồ tương tác sắp ra mắt</p>
-                </div>
+              {/* Google Maps */}
+              <div className="h-80 rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+                <iframe
+                  src="https://maps.google.com/maps?q=13.7829,109.2196&z=15&output=embed"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Vị trí Trầm Hương Eco-Resort"
+                />
               </div>
             </div>
           </div>

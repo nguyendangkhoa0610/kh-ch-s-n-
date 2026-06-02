@@ -15,11 +15,8 @@ function getTomorrowStr() {
 
 function formatDisplayDate(dateStr: string) {
   if (!dateStr) return "";
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 export function BookingBar() {

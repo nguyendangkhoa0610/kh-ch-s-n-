@@ -13,6 +13,7 @@ export type Activity = {
   notes: string[];
   emoji: string;
   gradient: string;
+  image: string; // thay bằng URL ảnh thật của bạn
   schedules: string[];
 };
 
@@ -62,6 +63,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Độ tuổi tối thiểu: 10 tuổi", "Không yêu cầu kinh nghiệm", "Trang phục bơi lội"],
     emoji: "🏄",
     gradient: "from-sky-900 via-cyan-800 to-teal-900",
+    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80",
     schedules: ["07:00", "09:00", "15:00", "17:00"],
   },
   {
@@ -78,6 +80,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Biết bơi cơ bản", "Không áp dụng cho trẻ dưới 8 tuổi", "Tùy thuộc điều kiện thời tiết"],
     emoji: "🤿",
     gradient: "from-blue-950 via-cyan-900 to-sky-900",
+    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
     schedules: ["08:00", "10:00", "14:00"],
   },
   {
@@ -94,6 +97,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Khởi hành lúc 18:00", "Mặc đồ ấm", "Cá câu được giữ lại nấu ăn"],
     emoji: "🎣",
     gradient: "from-slate-900 via-blue-950 to-indigo-950",
+    image: "https://images.unsplash.com/photo-1440186347098-386b7459ad6b?w=800&q=80",
     schedules: ["18:00"],
   },
 
@@ -112,6 +116,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Đi giày thể thao / leo núi", "Độ khó: trung bình", "Mang theo mũ"],
     emoji: "🌿",
     gradient: "from-emerald-950 via-green-900 to-lime-950",
+    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
     schedules: ["06:30", "14:00"],
   },
   {
@@ -128,6 +133,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Diễn ra hằng đêm", "Mang theo ghế cắm trại nếu muốn", "Thú cưng được chào đón"],
     emoji: "🔥",
     gradient: "from-orange-950 via-red-900 to-rose-950",
+    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
     schedules: ["20:00"],
   },
   {
@@ -144,6 +150,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Phù hợp mọi lứa tuổi", "Tuyến đường bằng phẳng", "Mang theo máy ảnh"],
     emoji: "🚴",
     gradient: "from-lime-900 via-green-800 to-emerald-900",
+    image: "https://images.unsplash.com/photo-1502904550040-7534597429ae?w=800&q=80",
     schedules: ["06:00", "15:30"],
   },
 
@@ -162,6 +169,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Trang phục thoải mái", "Ăn nhẹ ít nhất 30 phút trước", "Đến sớm 5 phút"],
     emoji: "🧘",
     gradient: "from-violet-950 via-purple-900 to-indigo-950",
+    image: "https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=800&q=80",
     schedules: ["06:00", "07:00"],
   },
   {
@@ -178,6 +186,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Đặt lịch trước ít nhất 4 giờ", "Không áp dụng cho phụ nữ có thai", "Mặc quần áo rộng rãi"],
     emoji: "💆",
     gradient: "from-rose-950 via-pink-900 to-fuchsia-950",
+    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80",
     schedules: ["09:00", "11:00", "14:00", "16:00"],
   },
   {
@@ -194,6 +203,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Tắt hoàn toàn điện thoại", "Mặc đồ ấm buổi sáng", "Không nói chuyện"],
     emoji: "🌊",
     gradient: "from-teal-950 via-cyan-900 to-sky-950",
+    image: "https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=800&q=80",
     schedules: ["05:30", "17:30"],
   },
 
@@ -212,6 +222,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Không yêu cầu kinh nghiệm nấu ăn", "Phù hợp gia đình có trẻ em", "Mang giày kín"],
     emoji: "🥘",
     gradient: "from-amber-950 via-orange-900 to-yellow-950",
+    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80",
     schedules: ["09:00", "15:00"],
   },
   {
@@ -228,6 +239,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Không nói chuyện to", "Tắt điện thoại", "Ngồi trên sàn — mang gối nếu cần"],
     emoji: "🍵",
     gradient: "from-stone-900 via-amber-950 to-yellow-950",
+    image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80",
     schedules: ["07:30", "16:00"],
   },
   {
@@ -244,6 +256,7 @@ export const ACTIVITIES: Activity[] = [
     notes: ["Diễn ra thứ 6 & Chủ nhật", "Đặt chỗ trước 1 ngày", "Trẻ em dưới 5 tuổi: miễn phí"],
     emoji: "🦞",
     gradient: "from-red-950 via-orange-900 to-amber-950",
+    image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80",
     schedules: ["19:00"],
   },
 ];

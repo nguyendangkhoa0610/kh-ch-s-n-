@@ -51,6 +51,44 @@ staffRouter.post('/', async (c) => {
   return c.json({ data: user }, 201)
 })
 
+// PATCH /api/staff/:id — chỉnh thông tin nhân viên
+staffRouter.patch('/:id', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json<{ name?: string; phone?: string; role?: string }>()
+  const user = await prisma.user.update({
+    where: { id },
+    data: {
+      ...(body.name && { name: body.name }),
+      ...(body.phone !== undefined && { phone: body.phone || null }),
+      ...(body.role && { role: body.role }),
+    },
+    select: { id: true, name: true, email: true, phone: true, role: true },
+  })
+  return c.json({ data: user })
+})
+
+// PATCH /api/staff/:id/password — đặt lại mật khẩu
+staffRouter.patch('/:id/password', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json<{ password: string }>()
+  if (!body.password || body.password.length < 6) {
+    return c.json({ error: 'Mật khẩu tối thiểu 6 ký tự' }, 400)
+  }
+  const passwordHash = await bcrypt.hash(body.password, 10)
+  await prisma.user.update({ where: { id }, data: { passwordHash } })
+  return c.json({ success: true })
+})
+
+// DELETE /api/staff/:id — xóa nhân viên
+staffRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id')
+  const user = await prisma.user.findUnique({ where: { id } })
+  if (!user) return c.json({ error: 'Không tìm thấy' }, 404)
+  if (user.role === 'ADMIN') return c.json({ error: 'Không thể xóa tài khoản Admin' }, 403)
+  await prisma.user.delete({ where: { id } })
+  return c.json({ success: true })
+})
+
 // ─── Shifts ───────────────────────────────────────────────
 
 // GET /api/staff/shifts?from=&to=

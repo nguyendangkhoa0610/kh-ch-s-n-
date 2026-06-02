@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ROOM_TYPES } from "@/lib/room-data";
+import { fetchDBRoomTypes } from "@/lib/api";
 import { formatPrice } from "@tram-huong/shared";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -41,8 +43,29 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 export default async function RoomDetailPage({ params }: Props) {
   const { slug } = await params;
-  const room = ROOM_TYPES.find((r) => r.slug === slug);
-  if (!room) notFound();
+  const staticRoom = ROOM_TYPES.find((r) => r.slug === slug);
+  if (!staticRoom) notFound();
+
+  // Merge DB data (DB ưu tiên, static làm fallback)
+  const dbTypes = await fetchDBRoomTypes();
+  const db = dbTypes.find(t => t.slug === slug);
+  const parseJSON = (s: string, fb: string[]) => { try { return JSON.parse(s) as string[] } catch { return fb } }
+  const room = db ? {
+    ...staticRoom,
+    name: db.name || staticRoom.name,
+    tagline: db.tagline || staticRoom.tagline,
+    description: db.description || staticRoom.description,
+    price: db.basePrice || staticRoom.price,
+    capacity: db.capacity || staticRoom.capacity,
+    size: db.size || staticRoom.size,
+    bedType: db.bedType || staticRoom.bedType,
+    view: db.view || staticRoom.view,
+    badge: db.badge ?? staticRoom.badge,
+    amenities: parseJSON(db.amenities, staticRoom.amenities),
+    images: parseJSON(db.images, staticRoom.images).length > 0
+      ? parseJSON(db.images, staticRoom.images)
+      : staticRoom.images,
+  } : staticRoom;
 
   const others = ROOM_TYPES.filter((r) => r.slug !== slug).slice(0, 3);
 
@@ -51,11 +74,16 @@ export default async function RoomDetailPage({ params }: Props) {
       <SiteNav />
 
       {/* Hero */}
-      <section className={`pt-[72px] bg-gradient-to-br ${room.gradient} relative overflow-hidden`}>
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
-            style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }} />
-        </div>
+      <section className="pt-[72px] relative overflow-hidden bg-slate-900" style={{ minHeight: 420 }}>
+        <Image
+          src={room.images[0]}
+          alt={room.name}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-60"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/40 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-white/50 text-sm mb-8">
@@ -104,19 +132,29 @@ export default async function RoomDetailPage({ params }: Props) {
 
             {/* Left: details */}
             <div>
-              {/* Image gallery placeholder */}
+              {/* Image gallery */}
               <div className="grid grid-cols-3 gap-3 mb-12">
-                <div className={`col-span-2 h-64 bg-gradient-to-br ${room.gradient} rounded-2xl flex items-center justify-center`}>
-                  <svg className="w-16 h-16 text-white/20" fill="none" stroke="currentColor" strokeWidth={0.75} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
+                <div className="col-span-2 relative h-64 rounded-2xl overflow-hidden">
+                  <Image
+                    src={room.images[0]}
+                    alt={room.name}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    className="object-cover"
+                    priority
+                  />
                 </div>
                 <div className="flex flex-col gap-3">
-                  {[0, 1].map((i) => (
-                    <div
-                      key={i}
-                      className={`flex-1 bg-gradient-to-br ${room.gradient} opacity-70 rounded-2xl`}
-                    />
+                  {room.images.slice(1, 3).map((src, i) => (
+                    <div key={i} className="flex-1 relative rounded-2xl overflow-hidden">
+                      <Image
+                        src={src}
+                        alt={`${room.name} - ảnh ${i + 2}`}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 22vw"
+                        className="object-cover"
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -154,7 +192,8 @@ export default async function RoomDetailPage({ params }: Props) {
               <div className="sticky top-[88px]">
                 <div className="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.10)] border border-slate-100 overflow-hidden">
                   {/* Price header */}
-                  <div className={`bg-gradient-to-br ${room.gradient} px-7 py-6`}>
+                  <div className="relative px-7 py-6 bg-emerald-900 overflow-hidden">
+                    <Image src={room.images[0]} alt={room.name} fill sizes="400px" className="object-cover opacity-30" />
                     <p className="text-white/60 text-sm mb-1">Giá từ</p>
                     <p className="text-white font-bold text-3xl font-serif">
                       {formatPrice(room.price)}
@@ -226,7 +265,7 @@ export default async function RoomDetailPage({ params }: Props) {
                   href={`/phong/${r.slug}`}
                   className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-slate-100 flex flex-col transition-all duration-200 hover:-translate-y-1"
                 >
-                  <div className={`h-36 bg-gradient-to-br ${r.gradient}`} />
+                  <div className="h-36 relative overflow-hidden"><Image src={r.images[0]} alt={r.name} fill sizes="300px" className="object-cover group-hover:scale-105 transition-transform duration-500" /></div>
                   <div className="p-5">
                     <h3 className="font-serif text-base font-semibold text-slate-900 mb-1">{r.name}</h3>
                     <p className="text-emerald-700 font-bold text-sm">

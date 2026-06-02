@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
+import { ErrorBoundary } from '../ErrorBoundary'
 
 const navItems = [
   { to: '/dashboard', label: 'Tổng quan', icon: '📊' },
@@ -78,7 +79,9 @@ export function AdminLayout() {
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

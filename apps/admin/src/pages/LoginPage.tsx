@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
 export function LoginPage() {
   const login = useAuth((s) => s.login)
+  const navigate = useNavigate()
   const [email, setEmail] = useState('admin@tramhuong.vn')
   const [password, setPassword] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -13,7 +16,8 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      const user = await login(email, password)
+      navigate(user.role === 'STAFF' ? '/nv' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
     } finally {
@@ -58,17 +62,23 @@ export function LoginPage() {
             />
           </label>
 
-          <label className="block">
+          <div>
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Mật khẩu</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-              placeholder="••••••••"
-            />
-          </label>
+            <div className="relative">
+              <input
+                type={showPwd ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 pr-11 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                placeholder="••••••••"
+              />
+              <button type="button" onClick={() => setShowPwd(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1">
+                {showPwd ? '🙈' : '👁'}
+              </button>
+            </div>
+          </div>
 
           <button
             type="submit"

@@ -6,7 +6,6 @@ import { prisma } from '@tram-huong/database'
 export const authRouter = new Hono()
 
 const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
-const JWT_EXPIRY = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 // 7 ngày
 
 // POST /api/auth/admin/login
 authRouter.post('/admin/login', async (c) => {
@@ -22,8 +21,8 @@ authRouter.post('/admin/login', async (c) => {
     return c.json({ error: 'Email hoặc mật khẩu không đúng' }, 401)
   }
 
-  if (!['ADMIN', 'MANAGER'].includes(user.role)) {
-    return c.json({ error: 'Không có quyền truy cập admin' }, 403)
+  if (!['ADMIN', 'MANAGER', 'STAFF'].includes(user.role)) {
+    return c.json({ error: 'Không có quyền truy cập' }, 403)
   }
 
   const valid = await bcrypt.compare(body.password, user.passwordHash)
@@ -31,8 +30,9 @@ authRouter.post('/admin/login', async (c) => {
     return c.json({ error: 'Email hoặc mật khẩu không đúng' }, 401)
   }
 
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 // 7 ngày từ lúc login
   const token = await sign(
-    { sub: user.id, role: user.role, exp: JWT_EXPIRY },
+    { sub: user.id, role: user.role, exp },
     JWT_SECRET
   )
 

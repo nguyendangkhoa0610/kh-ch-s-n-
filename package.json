@@ -2,7 +2,7 @@
   "name": "tram-huong-resort",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=!@tram-huong/mobile",
     "build": "turbo run build --filter=@tram-huong/api...",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",

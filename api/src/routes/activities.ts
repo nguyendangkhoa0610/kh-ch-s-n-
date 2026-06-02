@@ -20,11 +20,20 @@ activitiesRouter.get('/', async (c) => {
 // PATCH /api/activities/:id
 activitiesRouter.patch('/:id', async (c) => {
   const id = c.req.param('id')
-  const body = await c.req.json<{ isActive?: boolean; price?: number; maxSlots?: number }>()
-  const activity = await prisma.activity.update({
-    where: { id },
-    data: body,
-  })
+  const body = await c.req.json<{
+    isActive?: boolean; price?: number; maxSlots?: number
+    name?: string; description?: string; duration?: number; category?: string; images?: string[]
+  }>()
+  const data: Record<string, unknown> = {}
+  if (body.isActive !== undefined) data.isActive = body.isActive
+  if (body.price !== undefined) data.price = Number(body.price)
+  if (body.maxSlots !== undefined) data.maxSlots = Number(body.maxSlots)
+  if (body.name !== undefined) data.name = body.name
+  if (body.description !== undefined) data.description = body.description
+  if (body.duration !== undefined) data.duration = Number(body.duration)
+  if (body.category !== undefined) data.category = body.category
+  if (body.images !== undefined) data.images = JSON.stringify(body.images)
+  const activity = await prisma.activity.update({ where: { id }, data })
   return c.json({ data: activity })
 })
 
