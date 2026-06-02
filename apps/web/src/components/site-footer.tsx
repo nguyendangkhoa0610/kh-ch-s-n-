@@ -3,6 +3,7 @@ const EXPLORE_LINKS = [
   { href: "/phong", label: "Phòng & bungalow" },
   { href: "/hoat-dong", label: "Hoạt động" },
   { href: "/ban-do", label: "Bản đồ resort" },
+  { href: "/thu-vien", label: "Thư viện ảnh" },
   { href: "/dat-phong", label: "Đặt phòng" },
   { href: "/dat-phong/tra-cuu", label: "Tra cứu đặt phòng" },
 ];

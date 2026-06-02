@@ -8,6 +8,7 @@ const NAV_KEYS = [
   { href: "/gioi-thieu", key: "nav.about" },
   { href: "/phong", key: "nav.rooms" },
   { href: "/hoat-dong", key: "nav.activities" },
+  { href: "/thu-vien", key: "nav.gallery" },
   { href: "/ban-do", key: "nav.map" },
   { href: "/lap-lich", key: "nav.aiplan" },
 ];
