@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const ZALO_NUMBER = "0256xxxxxxx"; // Thay bằng số Zalo thật của resort
+const ZALO_NUMBER = "0932183605";
 
 export function ZaloButton() {
   const [hovered, setHovered] = useState(false);
