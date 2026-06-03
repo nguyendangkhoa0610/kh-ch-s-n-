@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
@@ -70,6 +70,20 @@ export default function GalleryPage() {
   const filtered = active === "all" ? PHOTOS : PHOTOS.filter(p => p.category === active);
 
   const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!lightbox) return;
+    const allPhotos = active === "all" ? PHOTOS : PHOTOS.filter(p => p.category === active);
+    const idx = allPhotos.findIndex(p => p.src === lightbox.src);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight" && idx < allPhotos.length - 1) setLightbox(allPhotos[idx + 1]!);
+      if (e.key === "ArrowLeft" && idx > 0) setLightbox(allPhotos[idx - 1]!);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightbox, active, closeLightbox]);
 
   return (
     <>
@@ -168,17 +182,49 @@ export default function GalleryPage() {
       </main>
 
       {/* Lightbox */}
-      {lightbox && (
+      {lightbox && (() => {
+        const allPhotos = active === "all" ? PHOTOS : PHOTOS.filter(p => p.category === active);
+        const idx = allPhotos.findIndex(p => p.src === lightbox.src);
+        return (
         <div
           className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
           onClick={closeLightbox}
         >
+          {/* Close */}
           <button
             onClick={closeLightbox}
             className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center text-xl transition-colors"
+            aria-label="Đóng"
           >
             ✕
           </button>
+
+          {/* Prev */}
+          {idx > 0 && (
+            <button
+              onClick={e => { e.stopPropagation(); setLightbox(allPhotos[idx - 1]!); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors"
+              aria-label="Ảnh trước"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+          )}
+
+          {/* Next */}
+          {idx < allPhotos.length - 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); setLightbox(allPhotos[idx + 1]!); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-colors"
+              aria-label="Ảnh tiếp"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          )}
+
           <div
             className="relative max-w-5xl w-full max-h-[85vh]"
             onClick={e => e.stopPropagation()}
@@ -193,10 +239,14 @@ export default function GalleryPage() {
                 priority
               />
             </div>
-            <p className="text-white/70 text-sm text-center mt-3">{lightbox.alt}</p>
+            <p className="text-white/70 text-sm text-center mt-3">
+              {lightbox.alt}
+              <span className="text-white/40 ml-2 text-xs">{idx + 1} / {allPhotos.length}</span>
+            </p>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <SiteFooter />
     </>
