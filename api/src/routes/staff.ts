@@ -137,12 +137,13 @@ staffRouter.delete('/shifts/:id', async (c) => {
 
 // ─── Real-time settings ───────────────────────────────────
 
-staffRouter.get('/realtime', (c) => {
-  return c.json({ data: getRealtimeSettings() })
+staffRouter.get('/realtime', async (c) => {
+  const data = await getRealtimeSettings()
+  return c.json({ data })
 })
 
 staffRouter.patch('/realtime', async (c) => {
   const body = await c.req.json<{ crowdLevel?: CrowdLevel; notice?: string }>()
-  const updated = updateRealtimeSettings(body, 'admin')
+  const updated = await updateRealtimeSettings(body, 'admin')
   return c.json({ data: updated })
 })

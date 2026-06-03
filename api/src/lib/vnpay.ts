@@ -2,11 +2,13 @@ import crypto from 'crypto'
 
 // ─── Config ───────────────────────────────────────────────
 
+const SITE_URL = process.env['SITE_URL'] ?? process.env['NEXT_PUBLIC_BASE_URL'] ?? 'http://localhost:3000'
+
 export const VNPAY_CONFIG = {
   tmnCode: process.env['VNPAY_TMN_CODE'] ?? 'DEMO',
   hashSecret: process.env['VNPAY_HASH_SECRET'] ?? 'RAOEXHYVSDDIIENL',
   url: process.env['VNPAY_URL'] ?? 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  returnUrl: process.env['VNPAY_RETURN_URL'] ?? 'http://localhost:3000/dat-phong/ket-qua',
+  returnUrl: process.env['VNPAY_RETURN_URL'] ?? `${SITE_URL}/dat-phong/ket-qua`,
   version: '2.1.0',
   command: 'pay',
   currCode: 'VND',

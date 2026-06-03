@@ -170,6 +170,16 @@ bookingsRouter.post('/guest', async (c) => {
     },
   })
 
+  // Lưu payment record với method người dùng chọn
+  const method = (['VNPAY', 'MOMO', 'ZALOPAY', 'CASH'] as const).includes(body.paymentMethod as any)
+    ? (body.paymentMethod as 'VNPAY' | 'MOMO' | 'ZALOPAY' | 'CASH')
+    : 'VNPAY'
+  await prisma.payment.upsert({
+    where: { bookingId: booking.id },
+    update: { method, amount: Math.round(totalAmount * 0.3) },
+    create: { bookingId: booking.id, method, amount: Math.round(totalAmount * 0.3), status: 'PENDING' },
+  })
+
   // Gửi email xác nhận khách + thông báo admin (non-blocking, song song)
   const emailParams = {
     guestName: user.name,

@@ -222,3 +222,13 @@ model IncidentReport {
 
   @@map("incident_reports")
 }
+
+// Key-value store cho các cài đặt vận hành (crowd level, notice, v.v.)
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String   @default("system")
+
+  @@map("settings")
+}

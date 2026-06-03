@@ -687,23 +687,31 @@ function SuccessState({
         )}
 
         {paymentMethod === "VNPAY" || paymentMethod === "MOMO" || paymentMethod === "ZALOPAY" ? (
-          <button
-            onClick={handleVNPay}
-            disabled={vnpayLoading}
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
-          >
-            {vnpayLoading ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Đang chuyển đến VNPay...
-              </>
-            ) : (
-              <>🏦 Thanh toán qua VNPay — {formatPrice(deposit)}</>
+          <div className="space-y-2">
+            {/* Thông báo nếu user chọn MoMo/ZaloPay (chưa tích hợp, dùng VNPay gateway) */}
+            {(paymentMethod === "MOMO" || paymentMethod === "ZALOPAY") && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700">
+                {paymentMethod === "MOMO" ? "🟣 MoMo" : "🔵 ZaloPay"} chưa tích hợp trực tiếp — đặt cọc qua cổng VNPay, sau đó gửi bill chuyển khoản nếu cần.
+              </div>
             )}
-          </button>
+            <button
+              onClick={handleVNPay}
+              disabled={vnpayLoading}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              {vnpayLoading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Đang chuyển đến cổng thanh toán...
+                </>
+              ) : (
+                <>🏦 Đặt cọc qua VNPay — {formatPrice(deposit)}</>
+              )}
+            </button>
+          </div>
         ) : (
           <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
             <p className="text-sm text-amber-800 font-semibold">
