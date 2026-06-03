@@ -8,6 +8,7 @@ import { ROOM_TYPES } from "@/lib/room-data";
 import { fetchDBRoomTypes } from "@/lib/api";
 import { formatPrice } from "@tram-huong/shared";
 import { BookingWidget } from "./booking-widget";
+import { AvailabilityCalendar } from "./availability-calendar";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -204,6 +205,11 @@ export default async function RoomDetailPage({ params }: Props) {
 
                   {/* Booking form */}
                   <BookingWidget slug={room.slug} capacity={room.capacity} pricePerNight={room.price} />
+
+                  {/* Availability calendar */}
+                  <div className="border-t border-slate-100 px-7 pb-7 pt-4">
+                    <AvailabilityCalendar slug={room.slug} />
+                  </div>
                 </div>
 
                 {/* Contact */}

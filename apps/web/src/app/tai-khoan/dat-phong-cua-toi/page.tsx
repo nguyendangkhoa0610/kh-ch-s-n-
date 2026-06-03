@@ -194,6 +194,14 @@ export default function MyBookingsPage() {
                         </p>
                       </div>
                     )}
+                    {/* Link xem vé / in */}
+                    <div className="px-5 py-2 border-t border-slate-100 flex items-center justify-between">
+                      <Link href={`/dat-phong/xac-nhan/${b.code}`}
+                        className="text-xs text-emerald-600 font-semibold hover:underline">
+                        🎫 Xem & in vé
+                      </Link>
+                    </div>
+
                     {/* Nút hủy — chỉ cho PENDING và CONFIRMED */}
                     {(b.status === "PENDING" || b.status === "CONFIRMED") && (
                       <div className="px-5 py-3 border-t border-slate-100 flex justify-end">

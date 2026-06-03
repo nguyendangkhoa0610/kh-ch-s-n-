@@ -14,6 +14,10 @@ import { reportsRouter } from './routes/reports.js'
 import { staffRouter } from './routes/staff.js'
 import { mobileRouter } from './routes/mobile.js'
 import { mobileStaffRouter } from './routes/mobile-staff.js'
+import { reviewsRouter } from './routes/reviews.js'
+import { promoRouter } from './routes/promo.js'
+import { sendBookingReminder } from './lib/email.js'
+import { prisma } from '@tram-huong/database'
 
 const app = new Hono().basePath('/api')
 
@@ -89,6 +93,62 @@ app.route('/reports', reportsRouter)
 app.route('/staff', staffRouter)
 app.route('/mobile', mobileRouter)
 app.route('/mobile/staff', mobileStaffRouter)
+app.route('/reviews', reviewsRouter)
+app.route('/promo', promoRouter)
+
+// ── Reminder cron job — chạy mỗi ngày 08:00 ───────────────────────────────
+async function sendCheckInReminders() {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  tomorrow.setHours(0, 0, 0, 0)
+  const dayAfter = new Date(tomorrow)
+  dayAfter.setDate(dayAfter.getDate() + 1)
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      status: 'CONFIRMED',
+      checkIn: { gte: tomorrow, lt: dayAfter },
+    },
+    include: {
+      user: true,
+      room: { include: { roomType: true } },
+    },
+  })
+
+  for (const b of bookings) {
+    if (!b.user.email) continue
+    await sendBookingReminder({
+      guestName: b.user.name,
+      guestEmail: b.user.email,
+      bookingCode: b.code,
+      roomName: b.room?.roomType.name ?? 'Trầm Hương',
+      roomNumber: b.room?.number ?? null,
+      checkIn: b.checkIn.toISOString(),
+      checkOut: b.checkOut.toISOString(),
+      guests: b.guests,
+    })
+  }
+  return bookings.length
+}
+
+// Schedule chạy lúc 8:00 sáng mỗi ngày
+function scheduleDailyReminders() {
+  const now = new Date()
+  const next8am = new Date(now)
+  next8am.setHours(8, 0, 0, 0)
+  if (next8am <= now) next8am.setDate(next8am.getDate() + 1)
+  const msUntil8am = next8am.getTime() - now.getTime()
+  setTimeout(() => {
+    sendCheckInReminders().catch(() => {})
+    setInterval(() => sendCheckInReminders().catch(() => {}), 24 * 60 * 60 * 1000)
+  }, msUntil8am)
+}
+
+// Admin endpoint để trigger thủ công
+app.post('/api/admin/send-reminders', async (c) => {
+  const count = await sendCheckInReminders()
+  return c.json({ data: { sent: count, message: `Đã gửi ${count} email nhắc check-in ngày mai` } })
+})
 
 // 404
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
@@ -103,6 +163,7 @@ const PORT = Number(process.env['PORT'] ?? 4000)
 
 serve({ fetch: app.fetch, port: PORT }, () => {
   console.log(`API running at http://localhost:${PORT}`)
+  scheduleDailyReminders()
 })
 
 export type AppType = typeof app

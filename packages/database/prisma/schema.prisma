@@ -223,6 +223,35 @@ model IncidentReport {
   @@map("incident_reports")
 }
 
+// Đánh giá của khách (submit → chờ admin duyệt → hiện trên web)
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  room      String?
+  rating    Int      @default(5)   // 1-5
+  text      String   @db.Text
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("reviews")
+}
+
+// Mã giảm giá
+model PromoCode {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  discountPercent Int       // 0-100
+  maxUses         Int       @default(100)
+  usedCount       Int       @default(0)
+  expiresAt       DateTime?
+  active          Boolean   @default(true)
+  description     String?
+  createdAt       DateTime  @default(now())
+
+  @@map("promo_codes")
+}
+
 // Key-value store cho các cài đặt vận hành (crowd level, notice, v.v.)
 model Setting {
   key       String   @id

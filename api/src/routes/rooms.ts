@@ -97,6 +97,59 @@ roomsRouter.delete('/:id', async (c) => {
   return c.json({ success: true })
 })
 
+// GET /api/rooms/availability?slug=bungalow-bien&month=2026-06
+// Trả về mảng ngày đã có booking trong tháng (YYYY-MM-DD)
+roomsRouter.get('/availability', async (c) => {
+  const slug = c.req.query('slug')
+  const month = c.req.query('month') // YYYY-MM
+
+  if (!slug || !month) return c.json({ error: 'Thiếu slug hoặc month' }, 400)
+  if (!/^\d{4}-\d{2}$/.test(month)) return c.json({ error: 'month phải có dạng YYYY-MM' }, 400)
+
+  const [year, m] = month.split('-').map(Number)
+  const monthStart = new Date(year!, m! - 1, 1)
+  const monthEnd = new Date(year!, m!, 0, 23, 59, 59)
+
+  // Lấy tất cả bookings active trong tháng cho room type này
+  const bookings = await prisma.booking.findMany({
+    where: {
+      status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN'] },
+      room: { roomType: { slug } },
+      OR: [
+        { checkIn: { gte: monthStart, lte: monthEnd } },
+        { checkOut: { gte: monthStart, lte: monthEnd } },
+        { checkIn: { lte: monthStart }, checkOut: { gte: monthEnd } },
+      ],
+    },
+    select: { checkIn: true, checkOut: true },
+  })
+
+  // Tổng số phòng của loại này
+  const totalRooms = await prisma.room.count({ where: { roomType: { slug }, status: { not: 'MAINTENANCE' } } })
+
+  // Tạo map: ngày → số phòng đã đặt
+  const bookedMap: Record<string, number> = {}
+  for (const b of bookings) {
+    const cur = new Date(b.checkIn)
+    const end = new Date(b.checkOut)
+    while (cur < end) {
+      const key = cur.toISOString().split('T')[0]!
+      bookedMap[key] = (bookedMap[key] ?? 0) + 1
+      cur.setDate(cur.getDate() + 1)
+    }
+  }
+
+  // Ngày nào đã đầy (booked >= totalRooms) → unavailable
+  const unavailable: string[] = []
+  const daysInMonth = new Date(year!, m!, 0).getDate()
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    if ((bookedMap[key] ?? 0) >= totalRooms) unavailable.push(key)
+  }
+
+  return c.json({ data: { slug, month, totalRooms, unavailable } })
+})
+
 // PATCH /api/rooms/:id/status
 roomsRouter.patch('/:id/status', async (c) => {
   const id = c.req.param('id')

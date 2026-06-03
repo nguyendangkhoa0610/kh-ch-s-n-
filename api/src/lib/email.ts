@@ -362,3 +362,86 @@ export async function sendBookingConfirmation(params: BookingEmailParams): Promi
     console.log(`[Email] Sent booking confirmation to ${params.guestEmail}`)
   }
 }
+
+// ─── Booking Reminder Email (24h trước check-in) ─────────
+
+export type ReminderParams = {
+  guestName: string
+  guestEmail: string
+  bookingCode: string
+  roomName: string
+  roomNumber: string | null
+  checkIn: string
+  checkOut: string
+  guests: number
+}
+
+export async function sendBookingReminder(params: ReminderParams): Promise<void> {
+  const client = getResend()
+
+  const formatDate = (s: string) =>
+    new Date(s).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+
+  if (!client) {
+    console.log(`[Email] Reminder skipped (no Resend key): ${params.guestEmail} — ${params.bookingCode}`)
+    return
+  }
+
+  const confirmUrl = `${SITE_URL}/dat-phong/xac-nhan/${params.bookingCode}`
+  const mapUrl = `${SITE_URL}/ban-do`
+
+  await client.emails.send({
+    from: FROM,
+    to: params.guestEmail,
+    subject: `🌿 Nhắc nhở check-in ngày mai — ${params.bookingCode}`,
+    html: `
+      <div style="font-family:'Be Vietnam Pro',sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:24px">
+        <div style="background:#064e3b;border-radius:16px;padding:24px;text-align:center;margin-bottom:20px">
+          <h1 style="color:#fff;font-family:Georgia,serif;font-size:28px;margin:0 0 8px">Trầm Hương Eco-Resort</h1>
+          <p style="color:#86b59a;font-size:13px;margin:0">Bình Định · Việt Nam</p>
+        </div>
+
+        <div style="background:#fff;border-radius:12px;padding:24px;margin-bottom:16px">
+          <h2 style="color:#064e3b;font-size:20px;margin:0 0 16px">Xin chào ${params.guestName}! 👋</h2>
+          <p style="color:#374151;font-size:15px">Ngày mai là ngày check-in của bạn tại Trầm Hương. Chúng tôi đang rất mong đón bạn!</p>
+
+          <div style="background:#f0fdf4;border-left:4px solid #059669;border-radius:8px;padding:16px;margin:20px 0">
+            <p style="margin:0 0 8px;font-size:13px;color:#6b7280">Mã đặt phòng</p>
+            <p style="font-family:monospace;font-size:22px;font-weight:700;color:#059669;margin:0">${params.bookingCode}</p>
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <tr><td style="padding:6px 0;color:#6b7280">Phòng</td><td style="padding:6px 0;font-weight:600;color:#111827">${params.roomName}${params.roomNumber ? ` · Số ${params.roomNumber}` : ''}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Check-in</td><td style="padding:6px 0;font-weight:600;color:#111827">${formatDate(params.checkIn)} · 14:00</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Check-out</td><td style="padding:6px 0;font-weight:600;color:#111827">${formatDate(params.checkOut)} · 12:00</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Số khách</td><td style="padding:6px 0;font-weight:600;color:#111827">${params.guests} người</td></tr>
+          </table>
+        </div>
+
+        <div style="background:#fff;border-radius:12px;padding:20px;margin-bottom:16px">
+          <h3 style="color:#111827;font-size:16px;margin:0 0 12px">📋 Chuẩn bị cho chuyến đi</h3>
+          <ul style="color:#374151;font-size:14px;padding-left:20px;margin:0;line-height:1.8">
+            <li>Mang theo CMND/CCCD để làm thủ tục check-in</li>
+            <li>Đưa đón miễn phí từ Sân bay Phù Cát (báo trước giờ bay)</li>
+            <li>Bữa sáng phục vụ 06:30–09:30 tại Nhà hàng Trầm</li>
+            <li>WiFi: TramHuong_Resort — Mật khẩu: tramhuong2026</li>
+          </ul>
+        </div>
+
+        <div style="text-align:center;margin-bottom:16px">
+          <a href="${confirmUrl}" style="display:inline-block;background:#059669;color:white;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;margin-right:8px">
+            🎫 Xem vé đặt phòng
+          </a>
+          <a href="${mapUrl}" style="display:inline-block;background:#f3f4f6;color:#374151;padding:14px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px">
+            🗺️ Bản đồ resort
+          </a>
+        </div>
+
+        <div style="text-align:center;color:#9ca3af;font-size:12px">
+          <p>Cần hỗ trợ? Gọi lễ tân <strong>0932 183 605</strong> (24/7)</p>
+          <p>Trầm Hương Eco-Resort · Xã Cát Khánh, Phù Cát, Bình Định</p>
+        </div>
+      </div>
+    `,
+  }).catch(() => { /* fail silently */ })
+}

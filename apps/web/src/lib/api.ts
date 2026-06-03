@@ -44,6 +44,7 @@ export type GuestBookingPayload = {
   paymentMethod: string;
   notes?: string;
   userId?: string; // truyền khi user đã đăng nhập để link booking với account
+  promoCode?: string; // mã giảm giá (optional)
 };
 
 export type BookingResult = {
@@ -77,4 +78,29 @@ export async function createGuestBooking(
 
   const json = await res.json() as { data: BookingResult };
   return json.data;
+}
+
+// ─── Reviews ──────────────────────────────────────────────
+
+export type DBReview = {
+  id: string;
+  name: string;
+  location: string | null;
+  room: string | null;
+  rating: number;
+  text: string;
+  createdAt: string;
+};
+
+export async function fetchReviews(limit = 6): Promise<DBReview[]> {
+  try {
+    const res = await fetch(`${API_BASE}/reviews?limit=${limit}`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    const json = await res.json() as { data: DBReview[] };
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
 }

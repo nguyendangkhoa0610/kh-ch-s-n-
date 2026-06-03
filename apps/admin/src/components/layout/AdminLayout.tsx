@@ -8,6 +8,8 @@ const navItems = [
   { to: '/rooms', label: 'Phòng', icon: '🛏' },
   { to: '/activities', label: 'Hoạt động', icon: '🎯' },
   { to: '/reports', label: 'Báo cáo', icon: '📈' },
+  { to: '/reviews', label: 'Đánh giá', icon: '⭐' },
+  { to: '/promo', label: 'Mã giảm giá', icon: '🎟️' },
   { to: '/staff', label: 'Nhân viên', icon: '👥' },
   { to: '/realtime', label: 'Real-time', icon: '📡' },
 ]

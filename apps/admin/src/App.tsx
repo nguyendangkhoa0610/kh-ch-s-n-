@@ -10,6 +10,8 @@ import { ActivitiesPage } from './pages/ActivitiesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { StaffPage } from './pages/StaffPage'
 import { RealtimePage } from './pages/RealtimePage'
+import { ReviewsPage } from './pages/ReviewsPage'
+import { PromoPage } from './pages/PromoPage'
 import { StaffHomePage } from './pages/staff/StaffHomePage'
 import { StaffCheckInPage } from './pages/staff/StaffCheckInPage'
 import { StaffAlertsPage } from './pages/staff/StaffAlertsPage'
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/realtime" element={<RealtimePage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/promo" element={<PromoPage />} />
         </Route>
 
         {/* Staff — prefix /nv */}

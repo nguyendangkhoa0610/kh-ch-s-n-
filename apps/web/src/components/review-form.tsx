@@ -28,17 +28,43 @@ export function ReviewForm() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", location: "", room: "", rating: 5, text: "" });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const ROOM_OPTIONS = [
     "Bungalow View Biển", "Nhà Sàn Rừng", "Villa Gia Đình",
     "Eco Pod", "Lều Đồng Cỏ", "Suite Trầm Hương",
   ];
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!form.name.trim() || !form.text.trim()) return;
-    const msg = `⭐ Đánh giá mới từ khách hàng\n👤 ${form.name}${form.location ? ` — ${form.location}` : ""}\n🏡 ${form.room || "Chưa chọn phòng"}\n${"★".repeat(form.rating)}${"☆".repeat(5 - form.rating)} (${form.rating}/5)\n\n"${form.text}"`;
-    window.open(`https://zalo.me/${ZALO}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
-    setSent(true);
+    if (form.text.trim().length < 20) { setError("Đánh giá tối thiểu 20 ký tự"); return; }
+    setLoading(true); setError("");
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+      const res = await fetch(`${API}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          location: form.location.trim() || undefined,
+          room: form.room || undefined,
+          rating: form.rating,
+          text: form.text.trim(),
+        }),
+      });
+      const json = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Gửi đánh giá thất bại");
+      setSent(true);
+    } catch (err) {
+      // Fallback: gửi qua Zalo nếu API lỗi
+      const msg = `⭐ Đánh giá mới\n👤 ${form.name}${form.location ? ` — ${form.location}` : ""}\n🏡 ${form.room || "Chưa chọn"}\n${"★".repeat(form.rating)} (${form.rating}/5)\n\n"${form.text}"`;
+      window.open(`https://zalo.me/${ZALO}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+      setSent(true);
+      void err;
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!open) {
@@ -115,12 +141,14 @@ export function ReviewForm() {
             className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 resize-none" />
         </label>
 
+        {error && <p className="text-xs text-rose-500 bg-rose-50 rounded-lg px-3 py-2">{error}</p>}
+
         <button
           onClick={handleSubmit}
-          disabled={!form.name.trim() || !form.text.trim()}
+          disabled={loading || !form.name.trim() || !form.text.trim()}
           className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
         >
-          <span>💬</span> Gửi đánh giá qua Zalo
+          {loading ? "Đang gửi..." : <><span>✍️</span> Gửi đánh giá</>}
         </button>
         <p className="text-center text-xs text-slate-400">Đánh giá sẽ được kiểm duyệt trước khi đăng</p>
       </div>

@@ -441,6 +441,72 @@ function Step2Guest({
 
 // ─── Step 3: Confirm ─────────────────────────────────────
 
+function PromoInput({
+  subtotal,
+  promo,
+  setPromo,
+}: {
+  subtotal: number;
+  promo: { code: string; discount: number } | null;
+  setPromo: (p: { code: string; discount: number } | null) => void;
+}) {
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function apply() {
+    if (!code.trim()) return;
+    setLoading(true); setError("");
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+      const res = await fetch(`${API}/promo/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim(), amount: subtotal }),
+      });
+      const json = await res.json() as { data?: { code: string; discount: number }; error?: string };
+      if (!res.ok || json.error) throw new Error(json.error ?? "Mã không hợp lệ");
+      setPromo({ code: json.data!.code, discount: json.data!.discount });
+      setCode("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mã không hợp lệ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (promo) {
+    return (
+      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+        <span className="text-xs text-emerald-700 font-semibold">🎟️ {promo.code} đã áp dụng</span>
+        <button onClick={() => setPromo(null)} className="text-xs text-slate-400 hover:text-red-500">Bỏ</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          value={code}
+          onChange={e => { setCode(e.target.value.toUpperCase()); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && apply()}
+          placeholder="Mã giảm giá"
+          className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
+        />
+        <button
+          onClick={apply}
+          disabled={loading || !code.trim()}
+          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+        >
+          {loading ? "..." : "Áp dụng"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-rose-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
 function Step3Confirm({
   room,
   checkIn,
@@ -453,6 +519,8 @@ function Step3Confirm({
   onConfirm,
   loading,
   error,
+  promo,
+  setPromo,
 }: {
   room: RoomType;
   checkIn: string;
@@ -465,9 +533,12 @@ function Step3Confirm({
   onConfirm: () => Promise<void>;
   loading: boolean;
   error: string;
+  promo: { code: string; discount: number } | null;
+  setPromo: (p: { code: string; discount: number } | null) => void;
 }) {
   const nights = calcNights(checkIn, checkOut);
-  const total = room.price * nights;
+  const subtotal = room.price * nights;
+  const total = subtotal - (promo?.discount ?? 0);
   const deposit = Math.round(total * 0.3);
   const remaining = total - deposit;
 
@@ -531,8 +602,19 @@ function Step3Confirm({
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-slate-600">
                 <span>{formatPrice(room.price)} × {nights} đêm</span>
-                <span>{formatPrice(total)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
+
+              {/* Promo code input */}
+              <PromoInput subtotal={subtotal} promo={promo} setPromo={setPromo} />
+
+              {promo && (
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span>Giảm giá ({promo.code})</span>
+                  <span>−{formatPrice(promo.discount)}</span>
+                </div>
+              )}
+
               <div className="border-t border-slate-100 pt-3">
                 <div className="flex justify-between font-bold text-slate-900 text-base mb-1">
                   <span>Tổng cộng</span>
@@ -727,13 +809,19 @@ function SuccessState({
       {/* Auth upsell nếu chưa đăng nhập */}
       <AuthUpsell code={code} email={info.email} />
 
-      <div className="flex gap-3">
-        <Link href="/" className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl text-sm text-center hover:border-slate-300 transition-colors">
-          Về trang chủ
+      <div className="space-y-3">
+        <Link href={`/dat-phong/xac-nhan/${code}`}
+          className="block w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm text-center transition-colors">
+          🎫 Xem & in vé xác nhận
         </Link>
-        <Link href="/hoat-dong" className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm text-center transition-colors">
-          Xem hoạt động
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/" className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl text-sm text-center hover:border-slate-300 transition-colors">
+            Về trang chủ
+          </Link>
+          <Link href="/hoat-dong" className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm text-center transition-colors">
+            Xem hoạt động
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -797,6 +885,7 @@ function BookingContent() {
   const [bookingId, setBookingId] = useState("");
   const [confirmError, setConfirmError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [promo, setPromo] = useState<{ code: string; discount: number } | null>(null);
 
   function handleRoomSelect(room: RoomType) {
     setSelectedRoom(room);
@@ -820,6 +909,7 @@ function BookingContent() {
         paymentMethod,
         notes: guestInfo.notes,
         userId: user?.id, // link booking với account nếu đã đăng nhập
+        promoCode: promo?.code,
       });
       setBookingCode(result.code);
       setBookingId(result.id);
@@ -897,6 +987,8 @@ function BookingContent() {
               onConfirm={handleConfirm}
               loading={confirming}
               error={confirmError}
+              promo={promo}
+              setPromo={setPromo}
             />
           )}
 

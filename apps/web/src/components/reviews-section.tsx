@@ -1,4 +1,15 @@
 import { ReviewForm } from "@/components/review-form";
+import { fetchReviews } from "@/lib/api";
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts.at(-1)?.[0] ?? "")).toUpperCase();
+}
+
+function relativeDate(iso: string) {
+  const d = new Date(iso);
+  return `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`;
+}
 
 const REVIEWS = [
   {
@@ -74,8 +85,22 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function ReviewsSection() {
-  const avg = (REVIEWS.reduce((s, r) => s + r.rating, 0) / REVIEWS.length).toFixed(1);
+export async function ReviewsSection() {
+  // Lấy review đã duyệt từ DB; nếu < 3 thì dùng review mẫu
+  const dbReviews = await fetchReviews(6);
+  const reviews = dbReviews.length >= 3
+    ? dbReviews.map(r => ({
+        name: r.name,
+        location: r.location ?? "Việt Nam",
+        avatar: initials(r.name),
+        rating: r.rating,
+        date: relativeDate(r.createdAt),
+        room: r.room ?? "Trầm Hương",
+        text: r.text,
+      }))
+    : REVIEWS;
+
+  const avg = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
 
   return (
     <section className="py-20 bg-white">
@@ -95,7 +120,7 @@ export function ReviewsSection() {
             <div className="text-center">
               <p className="text-4xl font-bold text-emerald-700">{avg}</p>
               <StarRating rating={5} />
-              <p className="text-xs text-slate-500 mt-1">{REVIEWS.length} đánh giá</p>
+              <p className="text-xs text-slate-500 mt-1">{reviews.length} đánh giá</p>
             </div>
             <div className="text-sm text-slate-600 space-y-1">
               <p>⭐ Dịch vụ xuất sắc</p>
@@ -107,9 +132,9 @@ export function ReviewsSection() {
 
         {/* Reviews grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {REVIEWS.map((review) => (
+          {reviews.map((review, idx) => (
             <div
-              key={review.name}
+              key={`${review.name}-${idx}`}
               className="bg-slate-50 rounded-2xl p-6 border border-slate-100 hover:border-emerald-200 hover:shadow-sm transition-all"
             >
               {/* Stars + date */}

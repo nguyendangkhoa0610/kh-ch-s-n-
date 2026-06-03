@@ -82,6 +82,7 @@ bookingsRouter.post('/guest', async (c) => {
     paymentMethod: string
     notes?: string
     userId?: string // optional: link booking với account đã đăng nhập
+    promoCode?: string // optional: mã giảm giá
   }>()
 
   // Validate
@@ -125,7 +126,23 @@ bookingsRouter.post('/guest', async (c) => {
   if (!roomType) return c.json({ error: 'Loại phòng không tồn tại' }, 404)
 
   const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-  const totalAmount = roomType.basePrice * nights
+  let totalAmount = roomType.basePrice * nights
+
+  // Áp dụng mã giảm giá nếu có
+  let appliedPromo: { code: string; discountPercent: number; discount: number } | null = null
+  if (body.promoCode?.trim()) {
+    const promo = await prisma.promoCode.findUnique({ where: { code: body.promoCode.trim().toUpperCase() } })
+    const valid = promo && promo.active
+      && (!promo.expiresAt || new Date() <= promo.expiresAt)
+      && promo.usedCount < promo.maxUses
+    if (valid) {
+      const discount = Math.round(totalAmount * promo.discountPercent / 100)
+      totalAmount = totalAmount - discount
+      appliedPromo = { code: promo.code, discountPercent: promo.discountPercent, discount }
+      // Tăng lượt dùng
+      await prisma.promoCode.update({ where: { id: promo.id }, data: { usedCount: { increment: 1 } } })
+    }
+  }
 
   // Tìm phòng available (không bị trùng booking)
   const occupiedRoomIds = await prisma.booking.findMany({
@@ -160,6 +177,7 @@ bookingsRouter.post('/guest', async (c) => {
       notes: [
         body.notes,
         !availableRoom ? `[Phòng chưa assign — loại: ${roomType.name}]` : null,
+        appliedPromo ? `[Mã giảm giá ${appliedPromo.code}: -${appliedPromo.discountPercent}% = -${appliedPromo.discount.toLocaleString('vi-VN')}đ]` : null,
       ]
         .filter(Boolean)
         .join(' | ') || null,
