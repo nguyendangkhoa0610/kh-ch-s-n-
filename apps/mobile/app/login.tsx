@@ -9,16 +9,20 @@ import { api } from '../lib/api'
 import { useStore } from '../lib/store'
 import type { BookingInfo, StaffUser } from '../lib/store'
 
-type Tab = 'guest' | 'staff'
+type Tab = 'guest' | 'account' | 'staff'
 
 export default function Login() {
   const [tab, setTab] = useState<Tab>('guest')
 
-  // Guest fields
+  // Guest (mã đặt phòng)
   const [bookingCode, setBookingCode] = useState('')
   const [guestName, setGuestName] = useState('')
 
-  // Staff fields
+  // Account web (email + password)
+  const [acEmail, setAcEmail] = useState('')
+  const [acPassword, setAcPassword] = useState('')
+
+  // Staff
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
@@ -27,6 +31,7 @@ export default function Login() {
   const setGuestAuth = useStore((s) => s.setGuestAuth)
   const setStaffAuth = useStore((s) => s.setStaffAuth)
 
+  // ── Đăng nhập bằng mã đặt phòng ──────────────────────────────
   const handleGuestLogin = async () => {
     const code = bookingCode.trim().toUpperCase()
     const name = guestName.trim()
@@ -35,7 +40,7 @@ export default function Login() {
       return
     }
     if (!code.startsWith('TH') || code.length < 8) {
-      Alert.alert('Mã không hợp lệ', 'Mã đặt phòng có dạng TH + ngày + số (VD: TH20260603819)')
+      Alert.alert('Mã không hợp lệ', 'Mã đặt phòng có dạng TH + ngày + số\nVD: TH20260603819')
       return
     }
     setLoading(true)
@@ -49,21 +54,50 @@ export default function Login() {
     } catch (err: any) {
       const msg: string = err.message ?? ''
       if (msg.includes('Network') || msg.includes('fetch') || msg.includes('network')) {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến server. Kiểm tra WiFi và thử lại.')
+        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến server.\nKiểm tra WiFi và thử lại.')
       } else if (msg.includes('không tồn tại') || msg.includes('not found')) {
-        Alert.alert('Mã không tìm thấy', `Mã "${code}" không tồn tại.\nKiểm tra lại mã đặt phòng trong email xác nhận.`)
-      } else if (msg.includes('Tên') || msg.includes('name') || msg.includes('khớp')) {
+        Alert.alert('Mã không tìm thấy', `Mã "${code}" không tồn tại.\nKiểm tra trong email xác nhận đặt phòng.`)
+      } else if (msg.includes('Tên') || msg.includes('khớp')) {
         Alert.alert('Tên không khớp', `Tên "${name}" không trùng với tên đặt phòng.\nNhập đúng tên như lúc đặt phòng.`)
       } else if (msg.includes('hủy') || msg.includes('cancelled')) {
-        Alert.alert('Booking đã hủy', 'Đặt phòng này đã bị hủy. Liên hệ lễ tân để được hỗ trợ.')
+        Alert.alert('Booking đã hủy', 'Đặt phòng này đã bị hủy.\nLiên hệ lễ tân để được hỗ trợ.')
       } else {
-        Alert.alert('Đăng nhập thất bại', msg || 'Kiểm tra lại mã đặt phòng và họ tên')
+        Alert.alert('Đăng nhập thất bại', msg || 'Kiểm tra lại mã và họ tên')
       }
     } finally {
       setLoading(false)
     }
   }
 
+  // ── Đăng nhập bằng tài khoản web ─────────────────────────────
+  const handleAccountLogin = async () => {
+    if (!acEmail.trim() || !acPassword) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await api.post<{ token: string; booking: BookingInfo }>(
+        '/mobile/auth/account-login',
+        { email: acEmail.trim().toLowerCase(), password: acPassword }
+      )
+      setGuestAuth(res.data.token, res.data.booking)
+      router.replace('/(tabs)/key')
+    } catch (err: any) {
+      const msg: string = err.message ?? ''
+      if (msg.includes('Network') || msg.includes('fetch')) {
+        Alert.alert('Lỗi kết nối', 'Không thể kết nối server. Kiểm tra WiFi.')
+      } else if (msg.includes('chưa có đặt phòng') || msg.includes('404')) {
+        Alert.alert('Chưa có đặt phòng', 'Tài khoản này chưa có đặt phòng đang hoạt động.\nVui lòng đặt phòng trên website tramhuong-resort.vn trước.')
+      } else {
+        Alert.alert('Đăng nhập thất bại', msg || 'Email hoặc mật khẩu không đúng')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Đăng nhập nhân viên ────────────────────────────────────────
   const handleStaffLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu')
@@ -98,36 +132,36 @@ export default function Login() {
         </View>
 
         <View style={styles.card}>
-          {/* Tab switcher */}
+          {/* Tab switcher — 3 tabs */}
           <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'guest' && styles.tabBtnActive]}
-              onPress={() => setTab('guest')}
-            >
-              <Text style={[styles.tabText, tab === 'guest' && styles.tabTextActive]}>
-                Khách hàng
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'staff' && styles.tabBtnActive]}
-              onPress={() => setTab('staff')}
-            >
-              <Text style={[styles.tabText, tab === 'staff' && styles.tabTextActive]}>
-                Nhân viên
-              </Text>
-            </TouchableOpacity>
+            {([
+              { key: 'guest', label: 'Mã phòng' },
+              { key: 'account', label: 'Tài khoản' },
+              { key: 'staff', label: 'Nhân viên' },
+            ] as { key: Tab; label: string }[]).map(t => (
+              <TouchableOpacity
+                key={t.key}
+                style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
+                onPress={() => setTab(t.key)}
+              >
+                <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {tab === 'guest' ? (
+          {/* ── Tab: Mã đặt phòng ── */}
+          {tab === 'guest' && (
             <>
               <Text style={styles.title}>Chào mừng quý khách</Text>
-              <Text style={styles.subtitle}>Nhập mã đặt phòng để truy cập app</Text>
+              <Text style={styles.subtitle}>Nhập mã đặt phòng từ email xác nhận</Text>
 
               <View style={styles.field}>
                 <Text style={styles.label}>Mã đặt phòng</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="VD: TH20260001"
+                  placeholder="VD: TH20260603819"
                   placeholderTextColor="#9CA3AF"
                   value={bookingCode}
                   onChangeText={setBookingCode}
@@ -139,7 +173,7 @@ export default function Login() {
                 <Text style={styles.label}>Họ tên khách</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Nhập tên của bạn"
+                  placeholder="Nguyễn Văn A"
                   placeholderTextColor="#9CA3AF"
                   value={guestName}
                   onChangeText={setGuestName}
@@ -152,13 +186,60 @@ export default function Login() {
                 disabled={loading}
                 activeOpacity={0.85}
               >
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Đăng nhập</Text>
-                }
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Đăng nhập</Text>}
               </TouchableOpacity>
             </>
-          ) : (
+          )}
+
+          {/* ── Tab: Tài khoản web ── */}
+          {tab === 'account' && (
+            <>
+              <Text style={styles.title}>Đăng nhập tài khoản</Text>
+              <Text style={styles.subtitle}>Dùng email đã đăng ký trên website</Text>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  💡 Đăng nhập bằng tài khoản web để tự động lấy thông tin đặt phòng của bạn
+                </Text>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="email@example.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={acEmail}
+                  onChangeText={setAcEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoCorrect={false}
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.label}>Mật khẩu</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor="#9CA3AF"
+                  value={acPassword}
+                  onChangeText={setAcPassword}
+                  secureTextEntry
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnAccount, loading && styles.btnOff]}
+                onPress={handleAccountLogin}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Đăng nhập</Text>}
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── Tab: Nhân viên ── */}
+          {tab === 'staff' && (
             <>
               <Text style={styles.title}>Cổng nhân viên</Text>
               <Text style={styles.subtitle}>Đăng nhập bằng tài khoản resort</Text>
@@ -193,17 +274,14 @@ export default function Login() {
                 disabled={loading}
                 activeOpacity={0.85}
               >
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnText}>Đăng nhập</Text>
-                }
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Đăng nhập</Text>}
               </TouchableOpacity>
             </>
           )}
         </View>
 
         <Text style={styles.footer}>
-          Cần hỗ trợ? Lễ tân 24/7: 0256 XXX XXXX
+          Cần hỗ trợ? Lễ tân 24/7: 0932 183 605
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -228,10 +306,15 @@ const styles = StyleSheet.create({
   },
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   tabBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#9CA3AF' },
+  tabText: { fontSize: 12, fontWeight: '500', color: '#9CA3AF' },
   tabTextActive: { color: '#1A1A1A', fontWeight: '700' },
   title: { fontSize: 20, fontWeight: '700', color: '#1B4332', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#6B7280', marginBottom: 20 },
+  subtitle: { fontSize: 13, color: '#6B7280', marginBottom: 16 },
+  infoBox: {
+    backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12, marginBottom: 16,
+    borderLeftWidth: 3, borderLeftColor: '#10B981',
+  },
+  infoText: { fontSize: 12, color: '#065F46', lineHeight: 18 },
   field: { marginBottom: 14 },
   label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 5 },
   input: {
@@ -243,6 +326,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1B4332', borderRadius: 12, paddingVertical: 15,
     alignItems: 'center', marginTop: 4,
   },
+  btnAccount: { backgroundColor: '#047857' },
   btnStaff: { backgroundColor: '#065F46' },
   btnOff: { opacity: 0.55 },
   btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },

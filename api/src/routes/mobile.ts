@@ -79,6 +79,62 @@ mobileRouter.post('/auth/login', async (c) => {
   })
 })
 
+// ── POST /api/mobile/auth/account-login — đăng nhập bằng tài khoản web ─────
+// Dùng email + password (giống web), lấy booking active gần nhất
+
+mobileRouter.post('/auth/account-login', async (c) => {
+  const { default: bcrypt } = await import('bcryptjs')
+  const body = await c.req.json<{ email: string; password: string }>()
+
+  if (!body.email || !body.password) {
+    return c.json({ error: 'Vui lòng nhập email và mật khẩu' }, 400)
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: body.email.toLowerCase() } })
+  if (!user || !user.passwordHash) {
+    return c.json({ error: 'Email hoặc mật khẩu không đúng' }, 401)
+  }
+  const valid = await bcrypt.compare(body.password, user.passwordHash)
+  if (!valid) return c.json({ error: 'Email hoặc mật khẩu không đúng' }, 401)
+
+  // Lấy booking active (CONFIRMED hoặc CHECKED_IN) gần nhất
+  const booking = await prisma.booking.findFirst({
+    where: {
+      userId: user.id,
+      status: { in: ['CONFIRMED', 'CHECKED_IN', 'PENDING'] },
+    },
+    include: { room: { include: { roomType: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (!booking) {
+    return c.json({ error: 'Tài khoản này chưa có đặt phòng nào đang hoạt động.\nVui lòng đặt phòng trên website trước.' }, 404)
+  }
+
+  const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30
+  const token = await sign(
+    { sub: user.id, bookingId: booking.id, role: 'GUEST', exp },
+    JWT_SECRET
+  )
+
+  return c.json({
+    data: {
+      token,
+      booking: {
+        id: booking.id,
+        code: booking.code,
+        status: booking.status,
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        guests: booking.guests,
+        roomNumber: booking.room?.number ?? null,
+        roomName: booking.room?.roomType?.name ?? null,
+        guestName: user.name,
+      },
+    },
+  })
+})
+
 // ── GET /api/mobile/key ──────────────────────────────────────────────────────
 
 mobileRouter.get('/key', guestAuth, async (c) => {
