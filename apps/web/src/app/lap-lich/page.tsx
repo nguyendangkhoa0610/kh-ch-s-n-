@@ -197,7 +197,7 @@ function ItineraryCard({ result }: { result: ItineraryResult }) {
           </div>
         </div>
         <Link
-          href={`/dat-phong`}
+          href={`/dat-phong${result.roomSlug ? `?room=${result.roomSlug}` : ""}`}
           className="mt-5 block w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center text-sm transition-colors"
         >
           Đặt phòng theo kế hoạch này →
