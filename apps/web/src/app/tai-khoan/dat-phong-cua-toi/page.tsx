@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
@@ -42,15 +42,40 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/dat-phong-cua-toi"); return; }
+  const loadBookings = useCallback(() => {
+    if (!user) return;
     fetch(`${API}/bookings/my`, { headers: getHeaders() })
       .then(r => r.json() as Promise<{ data: Booking[] }>)
       .then(j => setBookings(j.data ?? []))
       .catch(() => setBookings([]))
       .finally(() => setLoading(false));
-  }, [user, router, getHeaders]);
+  }, [user, getHeaders]);
+
+  useEffect(() => {
+    if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/dat-phong-cua-toi"); return; }
+    loadBookings();
+  }, [user, router, loadBookings]);
+
+  async function handleCancel(bookingId: string, code: string) {
+    if (!confirm(`Bạn có chắc muốn hủy booking ${code}?\n\nChính sách:\n• Hủy trước 48h: hoàn 100% đặt cọc\n• Hủy trong 24–48h: hoàn 50% đặt cọc\n• Hủy trong 24h: không hoàn đặt cọc`)) return;
+    setCancelling(bookingId);
+    try {
+      const res = await fetch(`${API}/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: getHeaders(),
+      });
+      const json = await res.json() as { data?: { message: string }; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Hủy thất bại");
+      alert(`✅ Đã hủy booking ${code}\n${json.data?.message ?? ""}`);
+      loadBookings();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setCancelling(null);
+    }
+  }
 
   if (!user) return null;
 
@@ -167,6 +192,18 @@ export default function MyBookingsPage() {
                         <p className="text-xs text-emerald-700">
                           💡 Sử dụng mã <span className="font-mono font-bold">{b.code}</span> để đăng nhập app khách và dùng Digital Key.
                         </p>
+                      </div>
+                    )}
+                    {/* Nút hủy — chỉ cho PENDING và CONFIRMED */}
+                    {(b.status === "PENDING" || b.status === "CONFIRMED") && (
+                      <div className="px-5 py-3 border-t border-slate-100 flex justify-end">
+                        <button
+                          onClick={() => handleCancel(b.id, b.code)}
+                          disabled={cancelling === b.id}
+                          className="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors disabled:opacity-50"
+                        >
+                          {cancelling === b.id ? "Đang hủy..." : "Hủy đặt phòng"}
+                        </button>
                       </div>
                     )}
                   </div>

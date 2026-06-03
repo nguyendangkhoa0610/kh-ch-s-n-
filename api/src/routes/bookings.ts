@@ -239,3 +239,51 @@ bookingsRouter.patch('/:id/status', async (c) => {
   })
   return c.json({ data: booking })
 })
+
+// POST /api/bookings/:id/cancel — khách hàng tự hủy booking (auth required)
+bookingsRouter.post('/:id/cancel', async (c) => {
+  const id = c.req.param('id')
+
+  // Xác thực token khách hàng
+  const header = c.req.header('Authorization') ?? ''
+  if (!header.startsWith('Bearer ')) return c.json({ error: 'Chưa đăng nhập' }, 401)
+  let userId: string
+  try {
+    const payload = await verify(header.slice(7), JWT_SECRET, 'HS256')
+    userId = payload['sub'] as string
+  } catch {
+    return c.json({ error: 'Token không hợp lệ' }, 401)
+  }
+
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { payment: true },
+  })
+
+  if (!booking) return c.json({ error: 'Booking không tồn tại' }, 404)
+  if (booking.userId !== userId) return c.json({ error: 'Không có quyền hủy booking này' }, 403)
+  if (booking.status === 'CANCELLED') return c.json({ error: 'Booking đã được hủy' }, 400)
+  if (['CHECKED_IN', 'COMPLETED'].includes(booking.status)) {
+    return c.json({ error: 'Không thể hủy booking đã check-in hoặc hoàn thành' }, 400)
+  }
+
+  // Kiểm tra thời hạn hủy (trước 48h check-in)
+  const hoursUntilCheckIn = (new Date(booking.checkIn).getTime() - Date.now()) / (1000 * 60 * 60)
+  const refundPolicy = hoursUntilCheckIn >= 48
+    ? 'full'          // Hoàn 100% đặt cọc
+    : hoursUntilCheckIn >= 24
+    ? 'half'          // Hoàn 50% đặt cọc
+    : 'none'          // Không hoàn
+
+  await prisma.booking.update({ where: { id }, data: { status: 'CANCELLED' } })
+
+  const refundMessages: Record<string, string> = {
+    full: 'Hoàn 100% đặt cọc trong 3–5 ngày làm việc.',
+    half: 'Hoàn 50% đặt cọc do hủy trong vòng 48 giờ.',
+    none: 'Không hoàn đặt cọc do hủy trong vòng 24 giờ trước check-in.',
+  }
+
+  return c.json({
+    data: { success: true, refundPolicy, message: refundMessages[refundPolicy] },
+  })
+})

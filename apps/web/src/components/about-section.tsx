@@ -91,6 +91,7 @@ export function AboutSection() {
                 src="https://images.unsplash.com/photo-1449030799261-7a76dab48b2a?w=800&q=85"
                 alt="Nhà sàn giữa rừng trầm hương Trầm Hương Eco-Resort"
                 fill
+                priority
                 sizes="(max-width: 1024px) 50vw, 25vw"
                 className="object-cover"
               />

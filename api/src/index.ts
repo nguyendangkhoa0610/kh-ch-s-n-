@@ -17,9 +17,38 @@ import { mobileStaffRouter } from './routes/mobile-staff.js'
 
 const app = new Hono().basePath('/api')
 
+// ── Rate limiter in-memory đơn giản ──────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+function rateLimit(maxPerWindow: number, windowMs: number) {
+  return async (c: any, next: any) => {
+    const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? c.req.header('x-real-ip') ?? 'unknown'
+    const now = Date.now()
+    const entry = rateLimitMap.get(ip)
+    if (!entry || entry.resetAt < now) {
+      rateLimitMap.set(ip, { count: 1, resetAt: now + windowMs })
+    } else {
+      entry.count++
+      if (entry.count > maxPerWindow) {
+        return c.json({ error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.' }, 429)
+      }
+    }
+    await next()
+  }
+}
+// Cleanup map mỗi 5 phút tránh memory leak
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, entry] of rateLimitMap.entries()) {
+    if (entry.resetAt < now) rateLimitMap.delete(ip)
+  }
+}, 5 * 60 * 1000)
+
 // Middleware
 app.use('*', logger())
 app.use('*', prettyJSON())
+// Rate limit: auth routes 10 req/phút, global 200 req/phút
+app.use('/auth/*', rateLimit(10, 60_000))
+app.use('*', rateLimit(200, 60_000))
 const ALLOWED_ORIGINS = [
   // Local dev
   'http://localhost:3000',
