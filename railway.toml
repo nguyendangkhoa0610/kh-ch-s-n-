@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "node api/dist/index.js"
+startCommand = "npx prisma db push --schema packages/database/prisma/schema.prisma --accept-data-loss && node api/dist/index.js"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"

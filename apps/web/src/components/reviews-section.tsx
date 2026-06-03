@@ -1,3 +1,5 @@
+import { ReviewForm } from "@/components/review-form";
+
 const REVIEWS = [
   {
     name: "Nguyễn Minh Châu",
@@ -136,7 +138,7 @@ export function ReviewsSection() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 text-center">
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
             href="/dat-phong"
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full text-sm transition-colors"
@@ -146,6 +148,7 @@ export function ReviewsSection() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </a>
+          <ReviewForm />
         </div>
 
       </div>

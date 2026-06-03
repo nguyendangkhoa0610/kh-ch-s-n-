@@ -28,20 +28,37 @@ export default function Login() {
   const setStaffAuth = useStore((s) => s.setStaffAuth)
 
   const handleGuestLogin = async () => {
-    if (!bookingCode.trim() || !guestName.trim()) {
+    const code = bookingCode.trim().toUpperCase()
+    const name = guestName.trim()
+    if (!code || !name) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập mã đặt phòng và họ tên')
+      return
+    }
+    if (!code.startsWith('TH') || code.length < 8) {
+      Alert.alert('Mã không hợp lệ', 'Mã đặt phòng có dạng TH + ngày + số (VD: TH20260603819)')
       return
     }
     setLoading(true)
     try {
       const res = await api.post<{ token: string; booking: BookingInfo }>(
         '/mobile/auth/login',
-        { bookingCode: bookingCode.trim().toUpperCase(), guestName: guestName.trim() }
+        { bookingCode: code, guestName: name }
       )
       setGuestAuth(res.data.token, res.data.booking)
       router.replace('/(tabs)/key')
     } catch (err: any) {
-      Alert.alert('Đăng nhập thất bại', err.message ?? 'Kiểm tra lại mã đặt phòng và tên')
+      const msg: string = err.message ?? ''
+      if (msg.includes('Network') || msg.includes('fetch') || msg.includes('network')) {
+        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến server. Kiểm tra WiFi và thử lại.')
+      } else if (msg.includes('không tồn tại') || msg.includes('not found')) {
+        Alert.alert('Mã không tìm thấy', `Mã "${code}" không tồn tại.\nKiểm tra lại mã đặt phòng trong email xác nhận.`)
+      } else if (msg.includes('Tên') || msg.includes('name') || msg.includes('khớp')) {
+        Alert.alert('Tên không khớp', `Tên "${name}" không trùng với tên đặt phòng.\nNhập đúng tên như lúc đặt phòng.`)
+      } else if (msg.includes('hủy') || msg.includes('cancelled')) {
+        Alert.alert('Booking đã hủy', 'Đặt phòng này đã bị hủy. Liên hệ lễ tân để được hỗ trợ.')
+      } else {
+        Alert.alert('Đăng nhập thất bại', msg || 'Kiểm tra lại mã đặt phòng và họ tên')
+      }
     } finally {
       setLoading(false)
     }

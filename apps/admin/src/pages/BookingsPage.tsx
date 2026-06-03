@@ -38,9 +38,32 @@ function calcNights(checkIn: string, checkOut: string) {
   return Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000)
 }
 
+function exportCSV(bookings: Booking[]) {
+  const headers = ['Mã', 'Khách', 'Email', 'SĐT', 'Phòng', 'Check-in', 'Check-out', 'Đêm', 'Tổng tiền', 'Trạng thái']
+  const rows = bookings.map(b => [
+    b.code,
+    b.user.name,
+    b.user.email ?? '',
+    b.user.phone ?? '',
+    b.room ? `${b.room.number} (${b.room.roomType.name})` : 'Chưa assign',
+    new Date(b.checkIn).toLocaleDateString('vi-VN'),
+    new Date(b.checkOut).toLocaleDateString('vi-VN'),
+    String(calcNights(b.checkIn, b.checkOut)),
+    String(b.totalAmount),
+    STATUS_META[b.status]?.label ?? b.status,
+  ])
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url
+  a.download = `bookings-${new Date().toISOString().split('T')[0]}.csv`
+  a.click(); URL.revokeObjectURL(url)
+}
+
 export function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filter, setFilter] = useState('')
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
@@ -67,13 +90,29 @@ export function BookingsPage() {
     }
   }
 
+  const q = search.toLowerCase().trim()
+  const filtered = q
+    ? bookings.filter(b =>
+        b.code.toLowerCase().includes(q) ||
+        b.user.name.toLowerCase().includes(q) ||
+        (b.user.email ?? '').toLowerCase().includes(q) ||
+        (b.room?.number ?? '').toLowerCase().includes(q) ||
+        (b.room?.roomType.name ?? '').toLowerCase().includes(q)
+      )
+    : bookings
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>
           Quản lý Đặt phòng
         </h2>
-        <span className="text-sm text-slate-400">{bookings.length} kết quả</span>
+        <button
+          onClick={() => exportCSV(filtered)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          ⬇️ Export CSV
+        </button>
       </div>
 
       {error && (
@@ -81,6 +120,17 @@ export function BookingsPage() {
           ⚠️ {error}
         </div>
       )}
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Tìm theo mã, tên khách, số phòng..."
+          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+        />
+      </div>
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2 mb-5">
@@ -109,12 +159,15 @@ export function BookingsPage() {
             </svg>
             Đang tải...
           </div>
-        ) : bookings.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-sm">
-            Không có đặt phòng nào.
+            {search ? `Không tìm thấy kết quả cho "${search}"` : 'Không có đặt phòng nào.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
+            <div className="px-4 py-2 border-b border-slate-100 text-xs text-slate-400">
+              {filtered.length} kết quả{search ? ` cho "${search}"` : ''}
+            </div>
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
@@ -126,7 +179,7 @@ export function BookingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {bookings.map((b) => {
+                {filtered.map((b) => {
                   const meta = STATUS_META[b.status]
                   const nextStatus = NEXT_STATUS[b.status]
                   const nights = calcNights(b.checkIn, b.checkOut)
