@@ -285,13 +285,17 @@ function Step2Guest({
   onChange,
   onBack,
   onNext,
+  loginRedirect,
 }: {
   info: GuestInfo;
   onChange: (f: Partial<GuestInfo>) => void;
   onBack: () => void;
   onNext: () => void;
+  loginRedirect: string;
 }) {
+  const { user } = useCustomerAuth();
   const [errors, setErrors] = useState<Partial<GuestInfo>>({});
+  const [showForm, setShowForm] = useState(!!user); // nếu đã đăng nhập thì hiện form luôn
 
   function validate() {
     const e: Partial<GuestInfo> = {};
@@ -310,36 +314,127 @@ function Step2Guest({
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="bg-white rounded-2xl border border-slate-200 p-7 space-y-5">
-        <GuestField label="Họ và tên" value={info.name} onChange={v => onChange({ name: v })} placeholder="Nguyễn Văn A" error={errors.name} />
-        <GuestField label="Email" value={info.email} onChange={v => onChange({ email: v })} type="email" placeholder="email@example.com" error={errors.email} />
-        <GuestField label="Số điện thoại" value={info.phone} onChange={v => onChange({ phone: v })} type="tel" placeholder="0901 234 567" error={errors.phone} />
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-slate-700">Yêu cầu đặc biệt</span>
-          <textarea
-            value={info.notes}
-            onChange={(e) => onChange({ notes: e.target.value })}
-            placeholder="Phòng yên tĩnh, tầng cao, dị ứng thực phẩm..."
-            rows={3}
-            className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 resize-none"
-          />
-        </label>
-      </div>
 
-      <div className="flex gap-3 mt-6">
+      {/* ── Auth panel ─────────────────────────────────── */}
+      {user ? (
+        /* Đã đăng nhập — show badge */
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3.5 mb-5">
+          <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">
+            {user.name[0].toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-emerald-800 truncate">{user.name}</p>
+            <p className="text-xs text-emerald-600 truncate">{user.email}</p>
+          </div>
+          <span className="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-full font-medium shrink-0">
+            Đã đăng nhập
+          </span>
+        </div>
+      ) : !showForm ? (
+        /* Chưa đăng nhập — auth gate */
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-5 shadow-sm">
+          <div className="text-center mb-5">
+            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+              </svg>
+            </div>
+            <h3 className="font-serif text-lg text-slate-900 mb-1">Đăng nhập để đặt phòng</h3>
+            <p className="text-sm text-slate-500">
+              Thông tin tự động điền · Xem lại booking dễ dàng · Nhận ưu đãi thành viên
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <Link
+              href={`/tai-khoan/dang-nhap?redirect=${encodeURIComponent(loginRedirect)}`}
+              className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              Đăng nhập
+            </Link>
+            <Link
+              href={`/tai-khoan/dang-ky?redirect=${encodeURIComponent(loginRedirect)}`}
+              className="flex items-center justify-center w-full py-3 border-2 border-slate-200 hover:border-emerald-400 text-slate-700 hover:text-emerald-700 font-semibold rounded-xl text-sm transition-colors"
+            >
+              Tạo tài khoản mới
+            </Link>
+          </div>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-white text-xs text-slate-400">hoặc</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors"
+          >
+            Tiếp tục không đăng nhập →
+          </button>
+        </div>
+      ) : (
+        /* Chọn không đăng nhập — badge nhỏ */
+        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 mb-5">
+          <span className="text-xs text-slate-500">Đặt phòng không cần tài khoản</span>
+          <Link href={`/tai-khoan/dang-nhap?redirect=${encodeURIComponent(loginRedirect)}`}
+            className="text-xs font-semibold text-emerald-600 hover:underline">
+            Đăng nhập
+          </Link>
+        </div>
+      )}
+
+      {/* ── Form ─────────────────────────────────────────── */}
+      {(user || showForm) && (
+        <>
+          <div className="bg-white rounded-2xl border border-slate-200 p-7 space-y-5">
+            <GuestField label="Họ và tên" value={info.name} onChange={v => onChange({ name: v })} placeholder="Nguyễn Văn A" error={errors.name} />
+            <GuestField label="Email" value={info.email} onChange={v => onChange({ email: v })} type="email" placeholder="email@example.com" error={errors.email} />
+            <GuestField label="Số điện thoại" value={info.phone} onChange={v => onChange({ phone: v })} type="tel" placeholder="0901 234 567" error={errors.phone} />
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-semibold text-slate-700">Yêu cầu đặc biệt</span>
+              <textarea
+                value={info.notes}
+                onChange={(e) => onChange({ notes: e.target.value })}
+                placeholder="Phòng yên tĩnh, tầng cao, dị ứng thực phẩm..."
+                rows={3}
+                className="border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 resize-none"
+              />
+            </label>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={onBack}
+              className="flex-1 py-3.5 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl hover:border-slate-300 transition-colors text-sm"
+            >
+              ← Quay lại
+            </button>
+            <button
+              onClick={handleNext}
+              className="flex-[2] py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors text-sm"
+            >
+              Tiếp tục →
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Back khi đang ở auth gate */}
+      {!user && !showForm && (
         <button
           onClick={onBack}
-          className="flex-1 py-3.5 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl hover:border-slate-300 transition-colors text-sm"
+          className="mt-3 w-full py-3 text-sm text-slate-400 hover:text-slate-600 transition-colors"
         >
-          ← Quay lại
+          ← Quay lại chọn phòng
         </button>
-        <button
-          onClick={handleNext}
-          className="flex-[2] py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors text-sm"
-        >
-          Tiếp tục →
-        </button>
-      </div>
+      )}
     </div>
   );
 }
@@ -772,6 +867,12 @@ function BookingContent() {
               onChange={(f) => setGuestInfo((prev) => ({ ...prev, ...f }))}
               onBack={() => setStep(1)}
               onNext={() => { setStep(3); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              loginRedirect={`/dat-phong?${new URLSearchParams({
+                ...(selectedRoom ? { room: selectedRoom.slug } : {}),
+                checkIn,
+                checkOut,
+                guests: String(guests),
+              }).toString()}`}
             />
           )}
 

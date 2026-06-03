@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
 import { useCustomerAuth } from "@/lib/customer-auth";
 
@@ -31,13 +31,16 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") ?? "/tai-khoan";
+  const prefillEmail = searchParams.get("email") ?? "";
   const { register, user } = useCustomerAuth();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ name: "", email: prefillEmail, phone: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<typeof form & { general: string }>>({});
 
-  useEffect(() => { if (user) router.replace("/tai-khoan"); }, [user, router]);
+  useEffect(() => { if (user) router.replace(redirect); }, [user, router, redirect]);
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }));
@@ -62,7 +65,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || undefined, password: form.password });
-      router.replace("/tai-khoan");
+      router.replace(redirect);
     } catch (err) {
       setErrors({ general: err instanceof Error ? err.message : "Đăng ký thất bại" });
     } finally { setLoading(false); }
