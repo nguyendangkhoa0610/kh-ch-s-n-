@@ -1,6 +1,6 @@
 [deploy]
-# db push sync schema (additive — an toàn). Nếu lỗi vẫn start server để giữ uptime.
-startCommand = "(npx prisma db push --schema packages/database/prisma/schema.prisma --accept-data-loss || echo 'WARN: db push failed, starting anyway') && node api/dist/index.js"
+# startCommand đơn giản, đã chạy ổn định. db push chạy riêng qua `railway run`.
+startCommand = "node api/dist/index.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 90
 restartPolicyType = "on_failure"
