@@ -21,6 +21,9 @@ model User {
   role         String  @default("GUEST") // GUEST | STAFF | MANAGER | ADMIN
   passwordHash String?
 
+  ecoPoints           Int      @default(0)
+  completedChallenges String[] @default([])
+
   bookings         Booking[]
   shifts           Shift[]
   alerts           SOSAlert[]

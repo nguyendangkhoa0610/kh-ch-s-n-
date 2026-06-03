@@ -407,3 +407,59 @@ mobileRouter.patch('/room', guestAuth, async (c) => {
   // Mock: echo back (production: forward to IoT platform)
   return c.json({ data: { updated: true, controls: body } })
 })
+
+// ── Eco Points ───────────────────────────────────────────────────────────────
+
+// GET /api/mobile/eco — điểm + thử thách đã hoàn thành của user
+mobileRouter.get('/eco', guestAuth, async (c) => {
+  const guest = c.get('guest') as any
+  const user = await prisma.user.findUnique({
+    where: { id: guest.sub },
+    select: { ecoPoints: true, completedChallenges: true },
+  })
+  return c.json({ data: { ecoPoints: user?.ecoPoints ?? 0, completedChallenges: user?.completedChallenges ?? [] } })
+})
+
+// POST /api/mobile/eco/complete — hoàn thành 1 thử thách
+mobileRouter.post('/eco/complete', guestAuth, async (c) => {
+  const guest = c.get('guest') as any
+  const { challengeId, points } = await c.req.json<{ challengeId: string; points: number }>()
+
+  const user = await prisma.user.findUnique({
+    where: { id: guest.sub },
+    select: { ecoPoints: true, completedChallenges: true },
+  })
+  if (!user) return c.json({ error: 'User không tồn tại' }, 404)
+  if (user.completedChallenges.includes(challengeId)) {
+    return c.json({ data: { ecoPoints: user.ecoPoints, alreadyDone: true } })
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: guest.sub },
+    data: {
+      ecoPoints: { increment: points },
+      completedChallenges: { push: challengeId },
+    },
+    select: { ecoPoints: true, completedChallenges: true },
+  })
+  return c.json({ data: { ecoPoints: updated.ecoPoints, completedChallenges: updated.completedChallenges } })
+})
+
+// GET /api/mobile/eco/leaderboard — top khách xanh
+mobileRouter.get('/eco/leaderboard', guestAuth, async (c) => {
+  const top = await prisma.user.findMany({
+    where: { ecoPoints: { gt: 0 }, role: 'GUEST' },
+    orderBy: { ecoPoints: 'desc' },
+    take: 10,
+    select: { name: true, ecoPoints: true },
+  })
+  // Ẩn bớt tên để bảo mật: "Nguyễn V. A"
+  const leaderboard = top.map((u, i) => {
+    const parts = u.name.trim().split(/\s+/)
+    const masked = parts.length > 1
+      ? `${parts[0]} ${parts.slice(1, -1).map(p => p[0] + '.').join(' ')} ${parts.at(-1)}`.trim()
+      : u.name
+    return { rank: i + 1, name: masked, ecoPoints: u.ecoPoints }
+  })
+  return c.json({ data: leaderboard })
+})

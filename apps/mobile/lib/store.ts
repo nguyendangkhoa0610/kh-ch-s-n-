@@ -57,6 +57,7 @@ interface AppStore {
   logout: () => void
   updateRoomControl: <K extends keyof RoomControls>(key: K, value: RoomControls[K]) => void
   completeChallenge: (id: string, points: number) => void
+  setEco: (ecoPoints: number, completedChallenges: string[]) => void
 }
 
 export const useStore = create<AppStore>()(
@@ -93,6 +94,8 @@ export const useStore = create<AppStore>()(
           ecoPoints: s.ecoPoints + points,
         }))
       },
+
+      setEco: (ecoPoints, completedChallenges) => set({ ecoPoints, completedChallenges }),
     }),
     {
       name: 'tram-huong-storage',

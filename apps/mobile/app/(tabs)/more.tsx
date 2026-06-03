@@ -1,11 +1,15 @@
+import { useState, useEffect, useCallback } from 'react'
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useStore } from '../../lib/store'
+import { api } from '../../lib/api'
+
+type LeaderEntry = { rank: number; name: string; ecoPoints: number }
 
 const ECO_CHALLENGES = [
   { id: 'c1', title: 'Không dùng đồ nhựa hôm nay', points: 50, icon: '🚫', desc: 'Dùng bình nước, túi vải có sẵn trong phòng' },
@@ -32,19 +36,46 @@ const GALLERY_PLACEHOLDERS = [
 
 export default function MoreScreen() {
   const router = useRouter()
+  const token = useStore((s) => s.token)
   const completedChallenges = useStore((s) => s.completedChallenges)
   const ecoPoints = useStore((s) => s.ecoPoints)
   const completeChallenge = useStore((s) => s.completeChallenge)
+  const setEco = useStore((s) => s.setEco)
   const logout = useStore((s) => s.logout)
+
+  const [showBoard, setShowBoard] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
 
   const level =
     [...ECO_LEVELS].reverse().find((l) => ecoPoints >= l.min) ?? ECO_LEVELS[0]
   const nextLevel = ECO_LEVELS.find((l) => l.min > ecoPoints)
 
-  const handleComplete = (c: (typeof ECO_CHALLENGES)[0]) => {
+  // Sync điểm từ server khi mount
+  useEffect(() => {
+    if (!token) return
+    api.get<{ ecoPoints: number; completedChallenges: string[] }>('/mobile/eco', token)
+      .then(res => { if (setEco) setEco(res.data.ecoPoints, res.data.completedChallenges) })
+      .catch(() => { /* dùng local */ })
+  }, [token])
+
+  const loadLeaderboard = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await api.get<LeaderEntry[]>('/mobile/eco/leaderboard', token)
+      setLeaderboard(res.data)
+    } catch { /* silent */ }
+  }, [token])
+
+  const handleComplete = async (c: (typeof ECO_CHALLENGES)[0]) => {
     if (completedChallenges.includes(c.id)) return
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    completeChallenge(c.id, c.points)
+    completeChallenge(c.id, c.points) // optimistic local update
+    // Sync lên server
+    if (token) {
+      api.post<{ ecoPoints: number; completedChallenges: string[] }>('/mobile/eco/complete', { challengeId: c.id, points: c.points }, token)
+        .then(res => { if (setEco) setEco(res.data.ecoPoints, res.data.completedChallenges) })
+        .catch(() => { /* local đã update */ })
+    }
     Alert.alert(
       '🎉 Hoàn thành thử thách!',
       `+${c.points} điểm xanh\nTổng điểm: ${ecoPoints + c.points}`
@@ -70,6 +101,14 @@ export default function MoreScreen() {
             Cần thêm {nextLevel.min - ecoPoints} điểm để đạt "{nextLevel.name}"
           </Text>
         )}
+        <TouchableOpacity
+          style={styles.boardBtn}
+          onPress={() => { loadLeaderboard(); setShowBoard(true) }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trophy" size={15} color="#C9A24B" />
+          <Text style={styles.boardBtnText}>Bảng xếp hạng khách xanh</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Eco Challenges */}
@@ -172,6 +211,36 @@ export default function MoreScreen() {
         <Ionicons name="log-out-outline" size={17} color="#9CA3AF" />
         <Text style={styles.logoutText}>Đăng xuất</Text>
       </TouchableOpacity>
+
+      {/* Leaderboard Modal */}
+      <Modal visible={showBoard} animationType="slide" transparent onRequestClose={() => setShowBoard(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🏆 Khách Xanh Hàng Đầu</Text>
+              <TouchableOpacity onPress={() => setShowBoard(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {leaderboard.length === 0 ? (
+              <Text style={styles.boardEmpty}>Chưa có dữ liệu xếp hạng.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {leaderboard.map((entry) => (
+                  <View key={entry.rank} style={styles.boardRow}>
+                    <Text style={[styles.boardRank, entry.rank <= 3 && styles.boardRankTop]}>
+                      {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                    </Text>
+                    <Text style={styles.boardName}>{entry.name}</Text>
+                    <Text style={styles.boardPoints}>{entry.ecoPoints} điểm</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <Text style={styles.boardNote}>Tích điểm xanh để leo hạng và nhận ưu đãi!</Text>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   )
 }
@@ -185,6 +254,22 @@ const styles = StyleSheet.create({
   ecoPoints: { fontSize: 13, color: '#86B59A', marginTop: 2 },
   ecoCount: { fontSize: 24, fontWeight: '800', color: '#6EE7B7' },
   ecoNext: { fontSize: 12, color: '#86B59A' },
+  boardBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 9, marginTop: 12,
+  },
+  boardBtnText: { color: '#C9A24B', fontSize: 13, fontWeight: '600' },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#1B4332' },
+  boardEmpty: { textAlign: 'center', color: '#9CA3AF', fontSize: 14, paddingVertical: 32 },
+  boardRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  boardRank: { width: 44, fontSize: 14, fontWeight: '700', color: '#9CA3AF' },
+  boardRankTop: { fontSize: 20 },
+  boardName: { flex: 1, fontSize: 14, fontWeight: '500', color: '#1A1A1A' },
+  boardPoints: { fontSize: 14, fontWeight: '700', color: '#059669' },
+  boardNote: { textAlign: 'center', fontSize: 12, color: '#9CA3AF', marginTop: 16 },
   section: { fontSize: 17, fontWeight: '700', color: '#1A1A1A', marginBottom: 10, marginTop: 4 },
   challenge: {
     flexDirection: 'row', alignItems: 'center',
