@@ -67,7 +67,7 @@ export function SiteFooter() {
                   <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
                 </svg>
               </a>
-              <a href="https://zalo.me/tramhuongresort" target="_blank" rel="noopener noreferrer" aria-label="Zalo"
+              <a href="https://zalo.me/0932183605" target="_blank" rel="noopener noreferrer" aria-label="Zalo"
                 className="w-9 h-9 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200">
                 <span className="text-[11px] font-bold">Zalo</span>
               </a>

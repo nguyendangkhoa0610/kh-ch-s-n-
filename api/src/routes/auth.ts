@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 import { prisma } from '@tram-huong/database'
 
 export const authRouter = new Hono()
