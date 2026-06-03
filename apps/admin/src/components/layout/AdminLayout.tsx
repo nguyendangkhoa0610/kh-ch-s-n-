@@ -24,7 +24,7 @@ export function AdminLayout() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-sm">🌿</div>
             <div>
-              <p className="text-sm font-bold leading-tight" style={{ fontFamily: 'Lora, serif' }}>Trầm Hương</p>
+              <p className="text-sm font-bold" style={{ fontFamily: 'Lora, Georgia, serif', lineHeight: '1.4', letterSpacing: '0.01em' }}>Trầm Hương</p>
               <p className="text-emerald-400 text-[10px] uppercase tracking-widest">Admin</p>
             </div>
           </div>
