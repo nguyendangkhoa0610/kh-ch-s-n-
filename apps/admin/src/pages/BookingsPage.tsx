@@ -67,6 +67,7 @@ export function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [detail, setDetail] = useState<Booking | null>(null)
 
   function load() {
     setLoading(true)
@@ -185,7 +186,12 @@ export function BookingsPage() {
                   const nights = calcNights(b.checkIn, b.checkOut)
                   return (
                     <tr key={b.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-emerald-700">{b.code}</td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => setDetail(b)}
+                          className="font-mono text-xs font-semibold text-emerald-700 hover:underline">
+                          {b.code}
+                        </button>
+                      </td>
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium text-slate-800">{b.user.name}</p>
                         <p className="text-xs text-slate-400">{b.user.phone}</p>
@@ -239,6 +245,68 @@ export function BookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Detail modal */}
+      {detail && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setDetail(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-emerald-900 px-6 py-5 text-white flex items-center justify-between sticky top-0">
+              <div>
+                <p className="text-emerald-300 text-xs">Chi tiết đặt phòng</p>
+                <p className="font-mono text-lg font-bold">{detail.code}</p>
+              </div>
+              <button onClick={() => setDetail(null)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">✕</button>
+            </div>
+            <div className="p-6 space-y-4 text-sm">
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Khách hàng</p>
+                <p className="font-semibold text-slate-800">{detail.user.name}</p>
+                <p className="text-slate-500">{detail.user.email}</p>
+                <p className="text-slate-500">{detail.user.phone}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Nhận phòng</p>
+                  <p className="font-medium text-slate-700">{formatDate(detail.checkIn)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Trả phòng</p>
+                  <p className="font-medium text-slate-700">{formatDate(detail.checkOut)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Phòng</p>
+                  <p className="font-medium text-slate-700">{detail.room ? `${detail.room.number} · ${detail.room.roomType.name}` : 'Chưa assign'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Số khách</p>
+                  <p className="font-medium text-slate-700">{detail.guests} người</p>
+                </div>
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <div className="flex justify-between mb-1">
+                  <span className="text-slate-500">Tổng tiền</span>
+                  <span className="font-bold text-slate-800">{formatPrice(detail.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-400">
+                  <span>Đặt cọc 30%</span>
+                  <span>{formatPrice(Math.round(detail.totalAmount * 0.3))}</span>
+                </div>
+              </div>
+              {detail.notes && (
+                <div className="bg-amber-50 rounded-xl px-4 py-3 text-amber-700 text-xs border-t border-amber-100">
+                  <strong>Ghi chú:</strong> {detail.notes}
+                </div>
+              )}
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-400">Đặt lúc {new Date(detail.createdAt).toLocaleString('vi-VN')}</p>
+                <span className={`inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_META[detail.status]?.color ?? 'bg-slate-100 text-slate-500'}`}>
+                  {STATUS_META[detail.status]?.label ?? detail.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

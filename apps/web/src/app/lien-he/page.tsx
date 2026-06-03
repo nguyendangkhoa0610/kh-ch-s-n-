@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ContactForm } from "./contact-form";
+import { JsonLd } from "@/components/json-ld";
 
 export const metadata: Metadata = {
   title: "Liên hệ — Trầm Hương Eco-Resort",
@@ -71,9 +72,20 @@ const FAQS = [
   },
 ];
 
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map(f => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 export default function ContactPage() {
   return (
     <>
+      <JsonLd data={FAQ_SCHEMA} />
       <SiteNav />
 
       <section className="pt-[72px] bg-gradient-to-br from-emerald-950 to-slate-900 py-16 px-6">

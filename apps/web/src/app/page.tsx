@@ -6,6 +6,7 @@ import { RealtimeBar } from "@/components/realtime-bar";
 import { AboutSection } from "@/components/about-section";
 import { ExperienceSection } from "@/components/experience-section";
 import { RoomTypesSection } from "@/components/room-types-section";
+import { PackagesSection } from "@/components/packages-section";
 import { ActivitiesSection } from "@/components/activities-section";
 import { ReviewsSection } from "@/components/reviews-section";
 import { ZaloButton } from "@/components/zalo-button";
@@ -59,6 +60,7 @@ export default function HomePage() {
         <AboutSection />
         <ExperienceSection />
         <RoomTypesSection />
+        <PackagesSection />
         <ActivitiesSection />
         <ReviewsSection />
       </main>

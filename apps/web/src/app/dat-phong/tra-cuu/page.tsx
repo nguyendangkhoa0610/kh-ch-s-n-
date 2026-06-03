@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
@@ -44,7 +44,7 @@ function calcNights(checkIn: string, checkOut: string) {
   return Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86_400_000);
 }
 
-export default function TraCuuPage() {
+function TraCuuContent() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [booking, setBooking] = useState<BookingDetail | null>(null);
@@ -223,5 +223,13 @@ export default function TraCuuPage() {
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+export default function TraCuuPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 pt-[72px] flex items-center justify-center"><div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <TraCuuContent />
+    </Suspense>
   );
 }

@@ -9,6 +9,7 @@ import { fetchDBRoomTypes } from "@/lib/api";
 import { formatPrice } from "@tram-huong/shared";
 import { BookingWidget } from "./booking-widget";
 import { AvailabilityCalendar } from "./availability-calendar";
+import { JsonLd } from "@/components/json-ld";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -71,8 +72,26 @@ export default async function RoomDetailPage({ params }: Props) {
 
   const others = ROOM_TYPES.filter((r) => r.slug !== slug).slice(0, 3);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://tramhuong-resort.vn";
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: room.name,
+    description: room.description,
+    image: room.images[0],
+    brand: { "@type": "Brand", name: "Trầm Hương Eco-Resort" },
+    offers: {
+      "@type": "Offer",
+      price: room.price,
+      priceCurrency: "VND",
+      availability: "https://schema.org/InStock",
+      url: `${BASE_URL}/phong/${room.slug}`,
+    },
+  };
+
   return (
     <>
+      <JsonLd data={productSchema} />
       <SiteNav />
 
       {/* Hero */}
