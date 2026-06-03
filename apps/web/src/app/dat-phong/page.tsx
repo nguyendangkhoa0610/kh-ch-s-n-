@@ -453,16 +453,27 @@ function PromoInput({
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [available, setAvailable] = useState<{ code: string; discountPercent: number }[]>([]);
 
-  async function apply() {
-    if (!code.trim()) return;
+  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+
+  // Lấy mã đang có để gợi ý
+  useEffect(() => {
+    fetch(`${API}/promo/active`)
+      .then(r => r.json())
+      .then((j: { data: { code: string; discountPercent: number }[] }) => setAvailable(j.data ?? []))
+      .catch(() => setAvailable([]));
+  }, [API]);
+
+  async function apply(codeToApply?: string) {
+    const c = (codeToApply ?? code).trim();
+    if (!c) return;
     setLoading(true); setError("");
     try {
-      const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
       const res = await fetch(`${API}/promo/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim(), amount: subtotal }),
+        body: JSON.stringify({ code: c, amount: subtotal }),
       });
       const json = await res.json() as { data?: { code: string; discount: number }; error?: string };
       if (!res.ok || json.error) throw new Error(json.error ?? "Mã không hợp lệ");
@@ -495,7 +506,7 @@ function PromoInput({
           className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
         />
         <button
-          onClick={apply}
+          onClick={() => apply()}
           disabled={loading || !code.trim()}
           className="px-3 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
         >
@@ -503,6 +514,19 @@ function PromoInput({
         </button>
       </div>
       {error && <p className="text-xs text-rose-500 mt-1">{error}</p>}
+      {available.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {available.slice(0, 3).map(p => (
+            <button
+              key={p.code}
+              onClick={() => apply(p.code)}
+              className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 hover:bg-amber-100 transition-colors"
+            >
+              🎟️ {p.code} −{p.discountPercent}%
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

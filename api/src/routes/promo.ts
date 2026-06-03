@@ -34,6 +34,21 @@ promoRouter.post('/validate', async (c) => {
   })
 })
 
+// GET /api/promo/active — list mã đang active để khách xem (public)
+promoRouter.get('/active', async (c) => {
+  const now = new Date()
+  const promos = await prisma.promoCode.findMany({
+    where: { active: true },
+    orderBy: { discountPercent: 'desc' },
+    select: { code: true, discountPercent: true, description: true, expiresAt: true, maxUses: true, usedCount: true },
+  })
+  // Lọc mã còn hạn + còn lượt
+  const available = promos
+    .filter(p => (!p.expiresAt || p.expiresAt > now) && p.usedCount < p.maxUses)
+    .map(p => ({ code: p.code, discountPercent: p.discountPercent, description: p.description, expiresAt: p.expiresAt }))
+  return c.json({ data: available })
+})
+
 // POST /api/promo/use — đánh dấu đã dùng (gọi sau khi booking thành công)
 promoRouter.post('/use', async (c) => {
   const { code } = await c.req.json<{ code: string }>()
