@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 const STATS = [
   { value: "12 ha", label: "Diện tích khuôn viên" },
   { value: "24", label: "Phòng & bungalow" },
@@ -39,21 +42,36 @@ export function AboutSection() {
   return (
     <section id="gioi-thieu" className="py-24 lg:py-32 bg-amber-50">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        {/* Header */}
-        <div className="grid lg:grid-cols-2 gap-16 items-start mb-20">
+
+        {/* Header — text left, photos right */}
+        <div className="grid lg:grid-cols-2 gap-14 items-center mb-20">
           <div>
             <p className="text-emerald-600 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
               Câu chuyện của chúng tôi
             </p>
-            <h2 className="font-serif text-4xl lg:text-5xl text-slate-900 leading-[1.15] mb-8">
+            <h2 className="font-serif text-4xl lg:text-5xl text-slate-900 leading-[1.15] mb-7">
               Nơi trầm tích trở thành{" "}
               <em className="not-italic text-emerald-700">kỷ niệm</em>
             </h2>
-            <a
-              href="#phong"
+            <div className="space-y-4 text-slate-600 text-[17px] leading-relaxed mb-8">
+              <p>
+                Trầm Hương Eco-Resort được xây dựng trong lòng vùng rừng núi Bình
+                Định — mảnh đất huyền thoại của trầm hương quý hiếm. Mỗi chi tiết
+                được thiết kế để hòa quyện với thiên nhiên, không phá vỡ vẻ đẹp
+                nguyên sơ vốn có.
+              </p>
+              <p>
+                Chúng tôi tin rằng kỳ nghỉ lý tưởng không phải là xa rời cuộc
+                sống, mà là tìm lại nhịp thở tự nhiên của bản thân. Giữa tiếng
+                suối, bóng cây và hương trầm nhẹ phảng phất — đó là nơi bạn thuộc
+                về.
+              </p>
+            </div>
+            <Link
+              href="/gioi-thieu"
               className="inline-flex items-center gap-2 text-emerald-600 font-semibold text-sm hover:gap-3 transition-all duration-200 group"
             >
-              Xem các loại phòng
+              Xem câu chuyện của chúng tôi
               <svg
                 className="w-4 h-4 transition-transform group-hover:translate-x-1"
                 fill="none"
@@ -61,28 +79,45 @@ export function AboutSection() {
                 strokeWidth={2}
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
-            </a>
+            </Link>
           </div>
 
-          <div className="space-y-5 text-slate-600 text-[17px] leading-relaxed">
-            <p>
-              Trầm Hương Eco-Resort được xây dựng trong lòng vùng rừng núi Bình
-              Định — mảnh đất huyền thoại của trầm hương quý hiếm. Mỗi chi tiết
-              được thiết kế để hòa quyện với thiên nhiên, không phá vỡ vẻ đẹp
-              nguyên sơ vốn có.
-            </p>
-            <p>
-              Chúng tôi tin rằng kỳ nghỉ lý tưởng không phải là xa rời cuộc
-              sống, mà là tìm lại nhịp thở tự nhiên của bản thân. Giữa tiếng
-              suối, bóng cây và hương trầm nhẹ phảng phất — đó là nơi bạn thuộc
-              về.
-            </p>
+          {/* Photo collage */}
+          <div className="grid grid-cols-2 gap-3 h-[420px]">
+            <div className="relative rounded-3xl overflow-hidden row-span-2">
+              <Image
+                src="https://images.unsplash.com/photo-1449030799261-7a76dab48b2a?w=800&q=85"
+                alt="Nhà sàn giữa rừng trầm hương Trầm Hương Eco-Resort"
+                fill
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative rounded-3xl overflow-hidden">
+              <Image
+                src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=85"
+                alt="Bungalow view biển sáng sớm Trầm Hương"
+                fill
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative rounded-3xl overflow-hidden">
+              <Image
+                src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=85"
+                alt="Bãi biển riêng khu nghỉ dưỡng Bình Định"
+                fill
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                className="object-cover"
+              />
+              {/* Eco badge */}
+              <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                <span className="text-[11px] font-semibold text-emerald-800">Eco-Certified 2024</span>
+              </div>
+            </div>
           </div>
         </div>
 

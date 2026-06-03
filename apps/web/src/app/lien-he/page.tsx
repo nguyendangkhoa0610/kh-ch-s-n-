@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { ContactForm } from "./contact-form";
 
 export const metadata: Metadata = {
   title: "Liên hệ — Trầm Hương Eco-Resort",
@@ -100,16 +101,45 @@ export default function ContactPage() {
             ))}
           </div>
 
-          {/* Map embed placeholder */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-16">
-            <div className="bg-slate-100 h-64 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-5xl mb-3">🗺️</div>
-                <p className="text-slate-600 font-medium">Xã Cát Khánh, Phù Cát, Bình Định</p>
-                <Link href="/ban-do"
-                  className="mt-3 inline-block text-sm text-emerald-600 font-semibold hover:underline">
-                  Xem bản đồ resort tương tác →
-                </Link>
+          {/* Form + Map grid */}
+          <div className="grid lg:grid-cols-[1fr_420px] gap-8 mb-16">
+            {/* Contact form */}
+            <ContactForm />
+
+            {/* Google Maps */}
+            <div className="space-y-4">
+              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 320 }}>
+                <iframe
+                  src="https://maps.google.com/maps?q=13.7829,109.2196&z=14&output=embed"
+                  width="100%"
+                  height="320"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Vị trí Trầm Hương Eco-Resort"
+                />
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+                {[
+                  { icon: "📍", label: "Xã Cát Khánh, Phù Cát, Bình Định" },
+                  { icon: "✈️", label: "Sân bay Phù Cát: 15 phút (miễn phí đưa đón)" },
+                  { icon: "🚗", label: "TP. Quy Nhơn: 40 phút theo QL19B" },
+                  { icon: "🕐", label: "Check-in: 14:00 · Check-out: 12:00" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-3">
+                    <span className="text-lg shrink-0 mt-0.5">{item.icon}</span>
+                    <span className="text-sm text-slate-600">{item.label}</span>
+                  </div>
+                ))}
+                <a
+                  href="https://maps.google.com/?q=13.7829,109.2196"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:underline mt-1"
+                >
+                  Mở Google Maps →
+                </a>
               </div>
             </div>
           </div>

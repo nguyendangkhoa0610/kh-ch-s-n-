@@ -100,7 +100,7 @@ export function HeroSection() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="#phong"
+            href="/dat-phong"
             className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-full transition-all duration-200 hover:shadow-[0_8px_30px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 active:translate-y-0 text-sm sm:text-base"
           >
             Đặt phòng ngay

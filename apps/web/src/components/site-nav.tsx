@@ -203,18 +203,59 @@ export function SiteNav() {
 
       {/* Mobile drawer */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-100 px-6 py-5 flex flex-col gap-4 shadow-lg">
+        <div className="md:hidden bg-white border-t border-slate-100 px-6 py-5 flex flex-col gap-1 shadow-lg">
           {NAV_KEYS.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="text-slate-700 text-sm font-medium py-1"
+              className="text-slate-700 text-sm font-medium py-2.5 border-b border-slate-50"
               onClick={() => setMenuOpen(false)}
             >
               {t(item.key)}
             </a>
           ))}
-          <div className="flex items-center gap-3 mt-2">
+
+          {/* Account section */}
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            {user ? (
+              <div className="space-y-1">
+                <div className="flex items-center gap-3 py-2 px-1">
+                  <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    {user.name[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{user.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <Link href="/tai-khoan" onClick={() => setMenuOpen(false)}
+                  className="block py-2 px-1 text-sm text-slate-600 hover:text-emerald-600">
+                  Tài khoản của tôi
+                </Link>
+                <Link href="/tai-khoan/dat-phong-cua-toi" onClick={() => setMenuOpen(false)}
+                  className="block py-2 px-1 text-sm text-slate-600 hover:text-emerald-600">
+                  Đặt phòng của tôi
+                </Link>
+                <button onClick={() => { logout(); setMenuOpen(false); }}
+                  className="block py-2 px-1 text-sm text-red-500 w-full text-left">
+                  Đăng xuất
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link href="/tai-khoan/dang-nhap" onClick={() => setMenuOpen(false)}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl text-center hover:border-emerald-400">
+                  Đăng nhập
+                </Link>
+                <Link href="/tai-khoan/dang-ky" onClick={() => setMenuOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl text-center hover:bg-slate-200">
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 pt-3">
             <a
               href="/dat-phong"
               className="flex-1 px-5 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-full text-center"
