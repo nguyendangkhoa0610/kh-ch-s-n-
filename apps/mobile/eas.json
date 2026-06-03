@@ -6,6 +6,15 @@
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "device": {
+      "ios": {
+        "simulator": false,
+        "distribution": "internal"
       }
     },
     "production": {
@@ -13,7 +22,8 @@
         "buildType": "app-bundle"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "distribution": "store"
       }
     }
   }
