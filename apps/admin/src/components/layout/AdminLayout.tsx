@@ -75,7 +75,9 @@ export function AdminLayout() {
           <p className="text-slate-500 text-sm">Trầm Hương Eco-Resort · Bình Định</p>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-400 text-xs">API: localhost:4000</span>
+            <span className="text-slate-400 text-xs">
+              {import.meta.env.VITE_API_URL ? 'Production API' : 'Local API'}
+            </span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">

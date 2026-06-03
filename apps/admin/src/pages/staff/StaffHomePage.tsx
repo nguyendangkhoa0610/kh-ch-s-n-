@@ -31,7 +31,7 @@ export function StaffHomePage() {
         ? shiftData.data
         : (shiftData.data as { shifts?: Shift[] }).shifts ?? []
       setShifts(shifts)
-    }).catch(console.error).finally(() => setLoading(false))
+    }).catch(() => { /* silent fail */ }).finally(() => setLoading(false))
   }, [])
 
   const today = new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })

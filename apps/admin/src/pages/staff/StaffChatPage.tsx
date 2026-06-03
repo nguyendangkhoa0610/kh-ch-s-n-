@@ -29,7 +29,7 @@ export function StaffChatPage() {
     fetch(`${BASE}/mobile/staff/messages/${team}`, { headers: getHeaders() })
       .then(r => r.json())
       .then((j: { data: Message[] }) => setMessages(j.data ?? []))
-      .catch(console.error)
+      .catch(() => { /* silent fail — retry on next interval */ })
   }, [team])
 
   useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t) }, [load])

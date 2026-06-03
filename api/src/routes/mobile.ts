@@ -380,7 +380,7 @@ mobileRouter.post('/sos', guestAuth, async (c) => {
     },
   })
 
-  console.log(`[SOS] Alert created: ${alert.id} — type: ${alert.type}`)
+  // SOS alert created — monitored via admin dashboard
 
   return c.json({ data: { alertId: alert.id, status: alert.status } }, 201)
 })

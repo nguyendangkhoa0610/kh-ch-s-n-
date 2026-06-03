@@ -31,7 +31,7 @@ export function StaffAlertsPage() {
     fetch(`${BASE}/mobile/staff/sos-alerts`, { headers: getHeaders() })
       .then(r => r.json())
       .then((j: { data: Alert[] }) => setAlerts(j.data ?? []))
-      .catch(console.error)
+      .catch(() => { /* silent fail — retry on next poll */ })
       .finally(() => setLoading(false))
   }, [])
 

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { prisma } from '@tram-huong/database'
 
 export const authRouter = new Hono()
@@ -189,13 +190,65 @@ authRouter.post('/customer/forgot-password', async (c) => {
   })
 
   if (user && user.email) {
-    // TODO: Gửi email với link reset khi có domain thật
-    // Hiện tại log để debug
-    console.log(`[Auth] Password reset requested for: ${user.email}`)
-    // Khi implement đầy đủ: tạo token, lưu DB, gửi email qua Resend
+    // Tạo signed reset token (JWT) — expire 1 giờ, không cần lưu DB
+    const exp = Math.floor(Date.now() / 1000) + 3600
+    const resetToken = await sign({ sub: user.id, email: user.email, purpose: 'reset', exp }, JWT_SECRET)
+
+    const SITE_URL = process.env['SITE_URL'] ?? 'http://localhost:3000'
+    const resetUrl = `${SITE_URL}/tai-khoan/quen-mat-khau?token=${encodeURIComponent(resetToken)}`
+
+    // Gửi email qua Resend nếu có API key
+    const resendKey = process.env['RESEND_API_KEY']
+    if (resendKey && resendKey !== 're_your_key_here' && resendKey !== 're_...') {
+      const { Resend } = await import('resend')
+      const resend = new Resend(resendKey)
+      const from = process.env['RESEND_FROM'] ?? 'Trầm Hương Resort <no-reply@tramhuong-resort.vn>'
+      await resend.emails.send({
+        from,
+        to: user.email,
+        subject: 'Đặt lại mật khẩu — Trầm Hương Eco-Resort',
+        html: `
+          <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:24px">
+            <h2 style="color:#064e3b">Đặt lại mật khẩu</h2>
+            <p>Xin chào <strong>${user.name}</strong>,</p>
+            <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+            <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#059669;color:white;text-decoration:none;border-radius:8px;font-weight:600">
+              Đặt lại mật khẩu →
+            </a>
+            <p style="color:#6b7280;font-size:13px">Link có hiệu lực <strong>1 giờ</strong>. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+            <hr style="border-color:#e5e7eb;margin:24px 0"/>
+            <p style="color:#9ca3af;font-size:12px">Trầm Hương Eco-Resort · Bình Định · 0932 183 605</p>
+          </div>
+        `,
+      }).catch(() => { /* fail silently — email is best-effort */ })
+    }
   }
 
   return c.json({ success: true })
+})
+
+// POST /api/auth/customer/reset-password — xác thực token + đổi mật khẩu
+authRouter.post('/customer/reset-password', async (c) => {
+  const body = await c.req.json<{ token: string; newPassword: string }>()
+
+  if (!body.token || !body.newPassword) {
+    return c.json({ error: 'Thiếu token hoặc mật khẩu mới' }, 400)
+  }
+  if (body.newPassword.length < 6) {
+    return c.json({ error: 'Mật khẩu tối thiểu 6 ký tự' }, 400)
+  }
+
+  try {
+    const payload = await verify(decodeURIComponent(body.token), JWT_SECRET, 'HS256') as { sub: string; purpose: string; exp: number }
+    if (payload.purpose !== 'reset') return c.json({ error: 'Token không hợp lệ' }, 400)
+
+    const passwordHash = await bcrypt.hash(body.newPassword, 10)
+    await prisma.user.update({ where: { id: payload.sub }, data: { passwordHash } })
+
+    return c.json({ success: true, message: 'Mật khẩu đã được đặt lại thành công' })
+  } catch {
+    return c.json({ error: 'Token không hợp lệ hoặc đã hết hạn' }, 400)
+  }
 })
 
 // GET /api/auth/me (placeholder cũ)
