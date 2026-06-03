@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ROOM_TYPES } from "@/lib/room-data";
 import { fetchDBRoomTypes } from "@/lib/api";
 import { formatPrice } from "@tram-huong/shared";
+import { BookingWidget } from "./booking-widget";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -202,50 +203,13 @@ export default async function RoomDetailPage({ params }: Props) {
                   </div>
 
                   {/* Booking form */}
-                  <div className="p-7 space-y-4">
-                    <label className="block">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-                        Nhận phòng
-                      </span>
-                      <input
-                        type="date"
-                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-                        Trả phòng
-                      </span>
-                      <input
-                        type="date"
-                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-                        Số khách
-                      </span>
-                      <select className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 appearance-none">
-                        {Array.from({ length: room.capacity }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>{n} khách</option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl transition-colors text-sm mt-2">
-                      Đặt phòng ngay
-                    </button>
-
-                    <p className="text-center text-xs text-slate-400">
-                      Đặt cọc 30% · Hủy miễn phí trước 48h
-                    </p>
-                  </div>
+                  <BookingWidget slug={room.slug} capacity={room.capacity} />
                 </div>
 
                 {/* Contact */}
                 <p className="text-center text-sm text-slate-500 mt-4">
                   Cần tư vấn?{" "}
-                  <a href="tel:0256000000" className="text-emerald-600 font-semibold hover:underline">
+                  <a href="tel:0932183605" className="text-emerald-600 font-semibold hover:underline">
                     Gọi ngay
                   </a>
                 </p>

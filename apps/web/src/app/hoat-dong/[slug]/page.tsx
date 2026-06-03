@@ -6,6 +6,7 @@ import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ACTIVITIES, CATEGORY_META } from "@/lib/activity-data";
 import { formatPrice } from "@tram-huong/shared";
+import { ActivityBookingWidget } from "./activity-booking-widget";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -199,61 +200,18 @@ export default async function ActivityDetailPage({ params }: Props) {
                   </div>
 
                   {/* Booking form */}
-                  <div className="p-7 space-y-5">
-                    {/* Schedule picker */}
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                        Chọn buổi
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {act.schedules.map((time) => (
-                          <button
-                            key={time}
-                            className="border border-slate-200 rounded-xl py-2.5 text-sm font-medium text-slate-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                          >
-                            {time}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Date */}
-                    <label className="block">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-                        Ngày
-                      </span>
-                      <input
-                        type="date"
-                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                      />
-                    </label>
-
-                    {/* Guests */}
-                    <label className="block">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">
-                        Số người
-                      </span>
-                      <select className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 appearance-none">
-                        {Array.from({ length: Math.min(act.maxSlots, 8) }, (_, i) => i + 1).map((n) => (
-                          <option key={n}>{n} người</option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors text-sm">
-                      Đặt lịch ngay
-                    </button>
-
-                    <p className="text-center text-xs text-slate-400">
-                      Hủy miễn phí trước 24h · Thanh toán tại resort
-                    </p>
-                  </div>
+                  <ActivityBookingWidget
+                    activityName={act.name}
+                    schedules={act.schedules}
+                    maxSlots={act.maxSlots}
+                    price={act.price}
+                  />
                 </div>
 
                 {/* Contact */}
                 <p className="text-center text-sm text-slate-500">
                   Cần tư vấn?{" "}
-                  <a href="tel:0256000000" className="text-emerald-600 font-semibold hover:underline">
+                  <a href="tel:0932183605" className="text-emerald-600 font-semibold hover:underline">
                     Gọi ngay
                   </a>
                 </p>

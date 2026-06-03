@@ -667,11 +667,14 @@ function AuthUpsell({ code, email }: { code: string; email: string }) {
 function BookingContent() {
   const params = useSearchParams();
 
-  const [step, setStep] = useState<Step>(1);
+  // Pre-select room nếu có param ?room=<slug> (từ trang phòng chi tiết)
+  const preRoom = ROOM_TYPES.find((r) => r.slug === (params.get("room") ?? "")) ?? null;
+
+  const [step, setStep] = useState<Step>(preRoom ? 2 : 1);
   const [checkIn, setCheckIn] = useState(params.get("checkIn") ?? getTodayStr());
   const [checkOut, setCheckOut] = useState(params.get("checkOut") ?? getTomorrowStr());
   const [guests, setGuests] = useState(Number(params.get("guests") ?? 2));
-  const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(preRoom);
   const { user } = useCustomerAuth();
   const [guestInfo, setGuestInfo] = useState<GuestInfo>({ name: "", email: "", phone: "", notes: "" });
 
