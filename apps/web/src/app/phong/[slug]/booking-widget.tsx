@@ -15,13 +15,25 @@ function getTomorrowStr() {
 type Props = {
   slug: string;
   capacity: number;
+  pricePerNight: number;
 };
 
-export function BookingWidget({ slug, capacity }: Props) {
+function calcNights(a: string, b: string) {
+  return Math.max(0, Math.ceil((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000));
+}
+function fmtVND(n: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+}
+
+export function BookingWidget({ slug, capacity, pricePerNight }: Props) {
   const router = useRouter();
   const [checkIn, setCheckIn] = useState(getTodayStr());
   const [checkOut, setCheckOut] = useState(getTomorrowStr());
   const [guests, setGuests] = useState(Math.min(2, capacity));
+
+  const nights = calcNights(checkIn, checkOut);
+  const total = nights * pricePerNight;
+  const deposit = Math.round(total * 0.3);
 
   function handleCheckInChange(val: string) {
     setCheckIn(val);
@@ -80,15 +92,29 @@ export function BookingWidget({ slug, capacity }: Props) {
         </select>
       </label>
 
+      {/* Price estimate */}
+      {nights > 0 && (
+        <div className="bg-slate-50 rounded-xl px-4 py-3 space-y-1.5 text-sm">
+          <div className="flex justify-between text-slate-500">
+            <span>{fmtVND(pricePerNight)} × {nights} đêm</span>
+            <span className="font-semibold text-slate-800">{fmtVND(total)}</span>
+          </div>
+          <div className="flex justify-between text-slate-400 text-xs border-t border-slate-200 pt-1.5">
+            <span>Đặt cọc ngay (30%)</span>
+            <span className="text-emerald-600 font-semibold">{fmtVND(deposit)}</span>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handleBook}
-        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl transition-colors text-sm mt-2"
+        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl transition-colors text-sm"
       >
         Đặt phòng ngay
       </button>
 
       <p className="text-center text-xs text-slate-400">
-        Đặt cọc 30% · Hủy miễn phí trước 48h
+        Hủy miễn phí trước 48h · Xác nhận qua email
       </p>
     </div>
   );

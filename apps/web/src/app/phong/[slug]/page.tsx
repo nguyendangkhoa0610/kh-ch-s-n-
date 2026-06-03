@@ -203,7 +203,7 @@ export default async function RoomDetailPage({ params }: Props) {
                   </div>
 
                   {/* Booking form */}
-                  <BookingWidget slug={room.slug} capacity={room.capacity} />
+                  <BookingWidget slug={room.slug} capacity={room.capacity} pricePerNight={room.price} />
                 </div>
 
                 {/* Contact */}
