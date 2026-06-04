@@ -13,6 +13,9 @@ import { RealtimePage } from './pages/RealtimePage'
 import { ReviewsPage } from './pages/ReviewsPage'
 import { PromoPage } from './pages/PromoPage'
 import { HousekeepingPage } from './pages/HousekeepingPage'
+import { MaintenancePage } from './pages/MaintenancePage'
+import { LiveChatPage } from './pages/LiveChatPage'
+import { TreesPage } from './pages/TreesPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { MenuPage } from './pages/MenuPage'
 import { VouchersPage } from './pages/VouchersPage'
@@ -57,6 +60,9 @@ export default function App() {
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/promo" element={<PromoPage />} />
           <Route path="/housekeeping" element={<HousekeepingPage />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/live-chat" element={<LiveChatPage />} />
+          <Route path="/trees" element={<TreesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/vouchers" element={<VouchersPage />} />

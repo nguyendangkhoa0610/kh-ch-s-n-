@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import * as ImagePicker from 'expo-image-picker'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useStore } from '../../lib/store'
@@ -36,6 +37,14 @@ type ReviewForm = {
   overallRating: number; cleanlinessRating: number; serviceRating: number; locationRating: number; comment: string
 }
 
+type TreeInfo = {
+  id: string; qrCode: string; name: string; scientificName: string | null
+  age: number | null; height: number | null; description: string
+  ecoValue: string; story: string | null; imageUrl: string | null; location: string | null
+}
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api'
+
 export default function MoreScreen() {
   const router = useRouter()
   const token = useStore((s) => s.token)
@@ -55,6 +64,12 @@ export default function MoreScreen() {
     overallRating: 5, cleanlinessRating: 5, serviceRating: 5, locationRating: 5, comment: '',
   })
   const [submittingReview, setSubmittingReview] = useState(false)
+  // AR Discovery
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanLoading, setScanLoading] = useState(false)
+  const [scanned, setScanned] = useState(false)
+  const [treeInfo, setTreeInfo] = useState<TreeInfo | null>(null)
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions()
 
   const level =
     [...ECO_LEVELS].reverse().find((l) => ecoPoints >= l.min) ?? ECO_LEVELS[0]
@@ -94,6 +109,37 @@ export default function MoreScreen() {
       const data = await r.json()
       if (data.secure_url) setGallery(prev => [data.secure_url, ...prev])
     } catch { Alert.alert('Lỗi', 'Không thể tải ảnh lên') } finally { setUploadingGallery(false) }
+  }
+
+  const openScanner = async () => {
+    if (!cameraPermission?.granted) {
+      const { granted } = await requestCameraPermission()
+      if (!granted) { Alert.alert('Cần quyền truy cập camera'); return }
+    }
+    setScanned(false)
+    setShowScanner(true)
+  }
+
+  const handleQRScan = async ({ data }: { data: string }) => {
+    if (scanned || scanLoading) return
+    setScanned(true)
+    setScanLoading(true)
+    try {
+      const qrCode = data.replace(/^.*\/tree\//, '').trim()
+      const res = await fetch(`${API_URL}/trees/${encodeURIComponent(qrCode)}`)
+      const json = await res.json()
+      if (!res.ok) {
+        Alert.alert('Không tìm thấy', 'Biển QR này chưa có dữ liệu trong hệ thống.')
+        setShowScanner(false)
+        return
+      }
+      setTreeInfo(json.data as TreeInfo)
+      setShowScanner(false)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } catch {
+      Alert.alert('Lỗi', 'Không kết nối được server')
+      setShowScanner(false)
+    } finally { setScanLoading(false) }
   }
 
   const submitReview = async () => {
@@ -185,27 +231,109 @@ export default function MoreScreen() {
 
       {/* AR Discovery */}
       <Text style={styles.section}>AR Discovery</Text>
-      <TouchableOpacity
-        style={styles.arCard}
-        activeOpacity={0.85}
-        onPress={() =>
-          Alert.alert(
-            'AR Discovery',
-            'Hướng camera vào biển thông tin trên cây để xem lịch sử, giá trị sinh thái và câu chuyện của loài cây đó.'
-          )
-        }
-      >
+      <TouchableOpacity style={styles.arCard} activeOpacity={0.85} onPress={openScanner}>
         <LinearGradient colors={['#065F46', '#047857']} style={styles.arGrad}>
           <Text style={{ fontSize: 40 }}>🌳</Text>
           <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={styles.arTitle}>Quét cây & khám phá</Text>
+            <Text style={styles.arTitle}>Quét QR trên biển cây</Text>
             <Text style={styles.arDesc}>
-              Dùng camera quét biển QR trên cây để xem thông tin sinh thái
+              Hướng camera vào mã QR để xem lịch sử, tuổi cây và giá trị sinh thái
             </Text>
           </View>
-          <Ionicons name="camera" size={26} color="#6EE7B7" />
+          <Ionicons name="qr-code" size={26} color="#6EE7B7" />
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* Scanner Modal */}
+      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <CameraView
+            style={{ flex: 1 }}
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={scanned ? undefined : handleQRScan}
+          >
+            {/* Overlay */}
+            <View style={styles.scanOverlay}>
+              <View style={styles.scanHeader}>
+                <TouchableOpacity onPress={() => setShowScanner(false)} style={styles.scanClose}>
+                  <Ionicons name="close" size={28} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.scanTitle}>Quét biển cây</Text>
+                <View style={{ width: 44 }} />
+              </View>
+              <View style={styles.scanFrame}>
+                <View style={[styles.scanCorner, { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 }]} />
+                <View style={[styles.scanCorner, { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 }]} />
+                <View style={[styles.scanCorner, { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 }]} />
+                <View style={[styles.scanCorner, { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 }]} />
+              </View>
+              <Text style={styles.scanHint}>
+                {scanLoading ? 'Đang tải thông tin cây...' : 'Hướng camera vào mã QR trên biển cây'}
+              </Text>
+            </View>
+          </CameraView>
+        </View>
+      </Modal>
+
+      {/* Tree Info Modal */}
+      <Modal visible={!!treeInfo} animationType="slide" transparent onRequestClose={() => setTreeInfo(null)}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modalCard, { paddingBottom: 40 }]}>
+            {treeInfo && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.treeName}>{treeInfo.name}</Text>
+                    {treeInfo.scientificName && (
+                      <Text style={styles.treeSci}>{treeInfo.scientificName}</Text>
+                    )}
+                  </View>
+                  <TouchableOpacity onPress={() => setTreeInfo(null)}>
+                    <Ionicons name="close" size={24} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+                {treeInfo.imageUrl && (
+                  <Image source={{ uri: treeInfo.imageUrl }}
+                    style={{ width: '100%', height: 160, borderRadius: 12, marginBottom: 14 }} />
+                )}
+                <View style={styles.treeStats}>
+                  {treeInfo.age && (
+                    <View style={styles.treeStat}>
+                      <Text style={styles.treeStatNum}>{treeInfo.age}</Text>
+                      <Text style={styles.treeStatLabel}>tuổi</Text>
+                    </View>
+                  )}
+                  {treeInfo.height && (
+                    <View style={styles.treeStat}>
+                      <Text style={styles.treeStatNum}>{treeInfo.height}m</Text>
+                      <Text style={styles.treeStatLabel}>chiều cao</Text>
+                    </View>
+                  )}
+                  {treeInfo.location && (
+                    <View style={styles.treeStat}>
+                      <Text style={styles.treeStatNum}>📍</Text>
+                      <Text style={styles.treeStatLabel}>{treeInfo.location}</Text>
+                    </View>
+                  )}
+                </View>
+                <ScrollView style={{ maxHeight: 260 }}>
+                  <Text style={styles.treeSection}>Mô tả</Text>
+                  <Text style={styles.treeText}>{treeInfo.description}</Text>
+                  <Text style={styles.treeSection}>Giá trị sinh thái</Text>
+                  <Text style={styles.treeText}>{treeInfo.ecoValue}</Text>
+                  {treeInfo.story && (
+                    <>
+                      <Text style={styles.treeSection}>Câu chuyện</Text>
+                      <Text style={styles.treeText}>{treeInfo.story}</Text>
+                    </>
+                  )}
+                </ScrollView>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Sen Vàng Memory */}
       <Text style={styles.section}>Sen Vàng Memory</Text>
@@ -428,4 +556,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F3E8', borderRadius: 12, padding: 12,
     fontSize: 14, color: '#1A1A1A', minHeight: 100, textAlignVertical: 'top',
   },
+  // Scanner
+  scanOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'space-between', padding: 24 },
+  scanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16 },
+  scanClose: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  scanTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  scanFrame: { width: 240, height: 240, alignSelf: 'center', position: 'relative' },
+  scanCorner: { position: 'absolute', width: 30, height: 30, borderColor: '#6EE7B7' },
+  scanHint: { color: '#fff', textAlign: 'center', fontSize: 14, paddingBottom: 40, opacity: 0.85 },
+  // Tree info
+  treeName: { fontSize: 20, fontWeight: '800', color: '#1B4332' },
+  treeSci: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', marginTop: 2 },
+  treeStats: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  treeStat: { flex: 1, backgroundColor: '#F0FDF4', borderRadius: 12, padding: 12, alignItems: 'center' },
+  treeStatNum: { fontSize: 18, fontWeight: '800', color: '#1B4332' },
+  treeStatLabel: { fontSize: 11, color: '#6B7280', marginTop: 2, textAlign: 'center' },
+  treeSection: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6, marginTop: 10, textTransform: 'uppercase' },
+  treeText: { fontSize: 14, color: '#4B5563', lineHeight: 22 },
 })

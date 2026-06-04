@@ -24,6 +24,9 @@ import { vouchersRouter } from './routes/vouchers.js'
 import { wishlistRouter } from './routes/wishlist.js'
 import { notificationsRouter } from './routes/notifications.js'
 import { pricingRouter } from './routes/pricing.js'
+import { maintenanceRouter } from './routes/maintenance.js'
+import { chatRouter } from './routes/chat.js'
+import { treesRouter } from './routes/trees.js'
 import { sendBookingReminder } from './lib/email.js'
 import { prisma } from '@tram-huong/database'
 
@@ -111,6 +114,9 @@ app.route('/vouchers', vouchersRouter)
 app.route('/wishlist', wishlistRouter)
 app.route('/notifications', notificationsRouter)
 app.route('/pricing', pricingRouter)
+app.route('/maintenance', maintenanceRouter)
+app.route('/chat', chatRouter)
+app.route('/trees', treesRouter)
 
 // ── Reminder cron job — chạy mỗi ngày 08:00 ───────────────────────────────
 async function sendCheckInReminders() {

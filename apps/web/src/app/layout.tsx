@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Lora, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/components/language-provider";
+import { LiveChatWidget } from "@/components/live-chat-widget";
 
 const lora = Lora({
   variable: "--font-lora",
@@ -88,7 +89,10 @@ export default function RootLayout({
       className={`${lora.variable} ${beVietnamPro.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          {children}
+          <LiveChatWidget />
+        </LanguageProvider>
       </body>
     </html>
   );

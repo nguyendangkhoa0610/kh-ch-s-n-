@@ -135,6 +135,20 @@ export type SeasonalPrice = {
   roomType: { name: string; slug: string; basePrice: number }
 }
 
+export type MaintenanceRequest = {
+  id: string
+  title: string
+  description: string
+  category: string
+  priority: string
+  status: string
+  photoUrl: string | null
+  resolvedAt: string | null
+  createdAt: string
+  room: { number: string; floor: number; roomType: { name: string } }
+  reporter: { name: string; role: string }
+}
+
 export type GuestProfile = {
   user: { id: string; name: string; email: string | null; phone: string | null; avatar: string | null; ecoPoints: number; createdAt: string }
   bookings: Booking[]
@@ -212,6 +226,13 @@ export const api = {
     post<SeasonalPrice>('/pricing', data),
   updatePricing: (id: string, data: Partial<SeasonalPrice>) => patch<SeasonalPrice>(`/pricing/${id}`, data),
   deletePricing: (id: string) => del(`/pricing/${id}`),
+
+  // Maintenance
+  getMaintenanceRequests: (status?: string) =>
+    get<MaintenanceRequest[]>('/maintenance' + (status ? `?status=${status}` : '')),
+  updateMaintenanceRequest: (id: string, data: { status?: string; priority?: string }) =>
+    patch<MaintenanceRequest>(`/maintenance/${id}`, data),
+  deleteMaintenanceRequest: (id: string) => del(`/maintenance/${id}`),
 
   // Push notifications
   sendNotification: (data: { roles?: string[]; userIds?: string[]; title: string; message: string }) =>
