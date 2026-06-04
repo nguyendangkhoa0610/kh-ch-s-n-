@@ -171,6 +171,23 @@ mobileStaffRouter.patch('/bookings/:id/checkin', staffAuth, async (c) => {
   return c.json({ data: { success: true, booking: updated } })
 })
 
+// ── PATCH /api/mobile/staff/bookings/:id/checkout ────────────────────────────
+
+mobileStaffRouter.patch('/bookings/:id/checkout', staffAuth, async (c) => {
+  const id = c.req.param('id')
+  const booking = await prisma.booking.findUnique({ where: { id } })
+  if (!booking) return c.json({ error: 'Booking không tồn tại' }, 404)
+  if (booking.status !== 'CHECKED_IN') {
+    return c.json({ error: 'Khách chưa check-in' }, 400)
+  }
+
+  const updated = await prisma.booking.update({
+    where: { id },
+    data: { status: 'COMPLETED' },
+  })
+  return c.json({ data: { success: true, booking: updated } })
+})
+
 // ── POST /api/mobile/staff/incidents ─────────────────────────────────────────
 
 mobileStaffRouter.post('/incidents', staffAuth, async (c) => {

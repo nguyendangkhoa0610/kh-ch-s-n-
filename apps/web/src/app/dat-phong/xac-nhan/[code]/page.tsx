@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
+import { TicketActions } from "./ticket-actions";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -76,16 +77,7 @@ export default async function BookingConfirmPage({ params }: { params: Promise<{
             <Link href="/tai-khoan/dat-phong-cua-toi" className="text-sm text-slate-500 hover:text-emerald-600">
               ← Đặt phòng của tôi
             </Link>
-            <div className="flex gap-2">
-              <button onClick={() => window.print()}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:border-emerald-400 transition-colors">
-                🖨️ In vé
-              </button>
-              <button onClick={() => navigator.share?.({ title: `Booking ${booking!.code}`, url: window.location.href }).catch(() => {})}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700 transition-colors">
-                📤 Chia sẻ
-              </button>
-            </div>
+            <TicketActions code={booking.code} />
           </div>
 
           {/* Ticket */}

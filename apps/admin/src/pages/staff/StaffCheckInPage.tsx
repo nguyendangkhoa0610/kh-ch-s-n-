@@ -12,6 +12,16 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+const STATUS_COLOR: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700', CONFIRMED: 'bg-blue-100 text-blue-700',
+  CHECKED_IN: 'bg-emerald-100 text-emerald-700', COMPLETED: 'bg-slate-100 text-slate-500',
+  CANCELLED: 'bg-red-100 text-red-500',
+}
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận',
+  CHECKED_IN: 'Đang lưu trú', COMPLETED: 'Hoàn thành', CANCELLED: 'Đã hủy',
+}
+
 export function StaffCheckInPage() {
   const { getHeaders } = useAuth()
   const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
@@ -19,57 +29,87 @@ export function StaffCheckInPage() {
   const [booking, setBooking] = useState<BookingInfo | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [checkingIn, setCheckingIn] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [acting, setActing] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
 
   async function search() {
-    if (!query.trim()) return
-    setLoading(true); setError(''); setBooking(null); setSuccess(false)
+    const q = query.trim().toUpperCase()
+    if (!q) return
+    setLoading(true); setError(''); setBooking(null); setSuccessMsg('')
     try {
-      const res = await fetch(`${BASE}/mobile/staff/bookings/by-qr?token=${encodeURIComponent(query.trim())}`, { headers: getHeaders() })
-      if (!res.ok) {
-        setError('Không tìm thấy booking với mã này.')
-        return
+      // Nếu là mã booking (bắt đầu TH) → tìm qua by-code
+      if (q.startsWith('TH')) {
+        const res = await fetch(`${BASE}/bookings/by-code/${q}`)
+        if (!res.ok) { setError('Không tìm thấy booking với mã này.'); return }
+        const json = await res.json() as { data: BookingInfo }
+        setBooking(json.data)
+      } else {
+        // Coi là QR token → tìm qua by-qr
+        const res = await fetch(`${BASE}/mobile/staff/bookings/by-qr?token=${encodeURIComponent(query.trim())}`, { headers: getHeaders() })
+        if (!res.ok) { setError('Mã QR không hợp lệ hoặc đã hết hạn.'); return }
+        const json = await res.json() as { data: {
+          bookingId: string; bookingCode: string; status: string
+          checkIn: string; checkOut: string; guests: number
+          guestName: string; guestPhone: string
+          roomNumber: string | null; roomName: string | null
+        } }
+        const d = json.data
+        setBooking({
+          id: d.bookingId,
+          code: d.bookingCode,
+          status: d.status,
+          checkIn: d.checkIn,
+          checkOut: d.checkOut,
+          guests: d.guests,
+          user: { name: d.guestName, phone: d.guestPhone, email: '' },
+          room: d.roomNumber ? { number: d.roomNumber, roomType: { name: d.roomName ?? '' } } : null,
+        })
       }
-      const json = await res.json() as { data: BookingInfo }
-      setBooking(json.data)
     } catch { setError('Lỗi kết nối API.') }
     finally { setLoading(false) }
   }
 
   async function doCheckIn() {
     if (!booking) return
-    setCheckingIn(true)
+    setActing(true)
     try {
       const res = await fetch(`${BASE}/mobile/staff/bookings/${booking.id}/checkin`, {
         method: 'PATCH', headers: getHeaders(),
       })
       if (!res.ok) throw new Error()
-      setSuccess(true)
+      setSuccessMsg(`✅ Check-in thành công! Chào mừng ${booking.user.name}!`)
       setBooking(b => b ? { ...b, status: 'CHECKED_IN' } : b)
     } catch { alert('Check-in thất bại.') }
-    finally { setCheckingIn(false) }
+    finally { setActing(false) }
   }
 
-  const STATUS_COLOR: Record<string, string> = {
-    PENDING: 'bg-amber-100 text-amber-700', CONFIRMED: 'bg-blue-100 text-blue-700',
-    CHECKED_IN: 'bg-emerald-100 text-emerald-700', COMPLETED: 'bg-slate-100 text-slate-500',
-  }
-  const STATUS_LABEL: Record<string, string> = {
-    PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', CHECKED_IN: 'Đang lưu trú', COMPLETED: 'Hoàn thành',
+  async function doCheckOut() {
+    if (!booking) return
+    if (!confirm(`Xác nhận check-out cho ${booking.user.name}?\nMã: ${booking.code}`)) return
+    setActing(true)
+    try {
+      const res = await fetch(`${BASE}/mobile/staff/bookings/${booking.id}/checkout`, {
+        method: 'PATCH', headers: getHeaders(),
+      })
+      if (!res.ok) throw new Error()
+      setSuccessMsg(`🌿 Check-out thành công! Hẹn gặp lại ${booking.user.name}!`)
+      setBooking(b => b ? { ...b, status: 'COMPLETED' } : b)
+    } catch { alert('Check-out thất bại.') }
+    finally { setActing(false) }
   }
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-6" style={{ fontFamily: 'Lora, serif' }}>Check-in khách</h2>
+      <h2 className="text-2xl font-bold text-slate-900 mb-6" style={{ fontFamily: 'Lora, serif' }}>Check-in / Check-out</h2>
 
       {/* Search */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <p className="text-sm font-semibold text-slate-700 mb-3">Nhập mã đặt phòng hoặc token QR</p>
+        <p className="text-sm font-semibold text-slate-700 mb-1">Nhập mã đặt phòng hoặc quét QR</p>
+        <p className="text-xs text-slate-400 mb-3">Mã đặt phòng dạng <span className="font-mono">TH...</span> hoặc token QR từ app khách</p>
         <div className="flex gap-3">
           <input value={query} onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
-            placeholder="VD: TH-2026-XXXX hoặc token QR..."
+            placeholder="VD: TH20260601234 hoặc token QR..."
             className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           <button onClick={search} disabled={loading}
             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors">
@@ -92,24 +132,34 @@ export function StaffCheckInPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><p className="text-slate-400 text-xs mb-1">Khách</p><p className="font-semibold text-slate-800">{booking.user.name}</p></div>
               <div><p className="text-slate-400 text-xs mb-1">Mã booking</p><p className="font-mono text-slate-800">{booking.code}</p></div>
-              <div><p className="text-slate-400 text-xs mb-1">SĐT</p><p className="text-slate-800">{booking.user.phone}</p></div>
-              <div><p className="text-slate-400 text-xs mb-1">Phòng</p><p className="text-slate-800">{booking.room?.number ?? '—'} · {booking.room?.roomType.name ?? '—'}</p></div>
+              <div><p className="text-slate-400 text-xs mb-1">SĐT</p><p className="text-slate-800">{booking.user.phone || '—'}</p></div>
+              <div><p className="text-slate-400 text-xs mb-1">Phòng</p><p className="text-slate-800">{booking.room ? `${booking.room.number} · ${booking.room.roomType.name}` : '—'}</p></div>
               <div><p className="text-slate-400 text-xs mb-1">Check-in</p><p className="text-slate-800">{fmt(booking.checkIn)}</p></div>
               <div><p className="text-slate-400 text-xs mb-1">Check-out</p><p className="text-slate-800">{fmt(booking.checkOut)}</p></div>
+              <div><p className="text-slate-400 text-xs mb-1">Số khách</p><p className="text-slate-800">{booking.guests} người</p></div>
             </div>
 
-            {success ? (
+            {successMsg ? (
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-4 py-3 text-sm font-semibold text-center">
-                ✅ Check-in thành công! Chào mừng {booking.user.name}!
+                {successMsg}
               </div>
             ) : booking.status === 'CONFIRMED' ? (
-              <button onClick={doCheckIn} disabled={checkingIn}
+              <button onClick={doCheckIn} disabled={acting}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
-                {checkingIn ? 'Đang xử lý...' : '✅ Xác nhận Check-in'}
+                {acting ? 'Đang xử lý...' : '✅ Xác nhận Check-in'}
               </button>
+            ) : booking.status === 'CHECKED_IN' ? (
+              <button onClick={doCheckOut} disabled={acting}
+                className="w-full py-3.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
+                {acting ? 'Đang xử lý...' : '🌿 Xác nhận Check-out'}
+              </button>
+            ) : booking.status === 'PENDING' ? (
+              <p className="text-center text-sm text-amber-600 bg-amber-50 rounded-xl py-3">
+                ⏳ Booking chưa được xác nhận. Vui lòng xác nhận trong trang Quản lý Đặt phòng trước.
+              </p>
             ) : (
               <p className="text-center text-sm text-slate-400 py-2">
-                {booking.status === 'CHECKED_IN' ? 'Khách đã check-in rồi.' : 'Booking chưa được xác nhận.'}
+                Booking đã {STATUS_LABEL[booking.status]?.toLowerCase() ?? booking.status}.
               </p>
             )}
           </div>
