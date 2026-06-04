@@ -114,6 +114,37 @@ mobileStaffRouter.patch('/sos-alerts/:id', staffAuth, async (c) => {
   return c.json({ data: alert })
 })
 
+// ── GET /api/mobile/staff/bookings/today ─────────────────────────────────────
+// Danh sách check-in hôm nay (CONFIRMED) + check-out hôm nay (CHECKED_IN)
+
+mobileStaffRouter.get('/bookings/today', staffAuth, async (c) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(today.getDate() + 1)
+
+  const select = {
+    id: true, code: true, status: true, checkIn: true, checkOut: true, guests: true,
+    user: { select: { name: true, phone: true } },
+    room: { select: { number: true, roomType: { select: { name: true } } } },
+  }
+
+  const [arrivals, departures] = await Promise.all([
+    prisma.booking.findMany({
+      where: { status: 'CONFIRMED', checkIn: { gte: today, lt: tomorrow } },
+      select,
+      orderBy: { checkIn: 'asc' },
+    }),
+    prisma.booking.findMany({
+      where: { status: 'CHECKED_IN', checkOut: { gte: today, lt: tomorrow } },
+      select,
+      orderBy: { checkOut: 'asc' },
+    }),
+  ])
+
+  return c.json({ data: { arrivals, departures } })
+})
+
 // ── GET /api/mobile/staff/bookings/by-qr ─────────────────────────────────────
 // Staff quét QR của khách → lấy thông tin booking
 

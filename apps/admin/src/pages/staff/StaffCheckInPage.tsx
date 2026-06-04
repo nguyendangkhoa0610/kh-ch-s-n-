@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 
 type BookingInfo = {
@@ -24,20 +25,26 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function StaffCheckInPage() {
   const { getHeaders } = useAuth()
+  const [searchParams] = useSearchParams()
   const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(searchParams.get('code') ?? '')
   const [booking, setBooking] = useState<BookingInfo | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [acting, setActing] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
-  async function search() {
-    const q = query.trim().toUpperCase()
+  // Auto-search nếu có code từ URL
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) search(code)
+  }, [])
+
+  async function search(overrideQuery?: string) {
+    const q = (overrideQuery ?? query).trim().toUpperCase()
     if (!q) return
     setLoading(true); setError(''); setBooking(null); setSuccessMsg('')
     try {
-      // Nếu là mã booking (bắt đầu TH) → tìm qua by-code
       if (q.startsWith('TH')) {
         const res = await fetch(`${BASE}/bookings/by-code/${q}`)
         if (!res.ok) { setError('Không tìm thấy booking với mã này.'); return }

@@ -247,8 +247,15 @@ bookingsRouter.post('/', async (c) => {
   return c.json({ data: booking }, 201)
 })
 
-// PATCH /api/bookings/:id/status
+// PATCH /api/bookings/:id/status — yêu cầu ADMIN hoặc MANAGER
 bookingsRouter.patch('/:id/status', async (c) => {
+  const header = c.req.header('Authorization') ?? ''
+  if (!header.startsWith('Bearer ')) return c.json({ error: 'Unauthorized' }, 401)
+  try {
+    const p = await verify(header.slice(7), JWT_SECRET, 'HS256') as { role: string }
+    if (!['ADMIN', 'MANAGER'].includes(p.role)) return c.json({ error: 'Forbidden' }, 403)
+  } catch { return c.json({ error: 'Unauthorized' }, 401) }
+
   const id = c.req.param('id')
   const body = await c.req.json<{ status: string }>()
   const booking = await prisma.booking.update({

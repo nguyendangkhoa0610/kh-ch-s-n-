@@ -2,7 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { ErrorBoundary } from '../ErrorBoundary'
 
-const navItems = [
+const NAV_ALL = [
   { to: '/dashboard', label: 'Tổng quan', icon: '📊' },
   { to: '/bookings', label: 'Đặt phòng', icon: '📅' },
   { to: '/rooms', label: 'Phòng', icon: '🛏' },
@@ -10,12 +10,19 @@ const navItems = [
   { to: '/reports', label: 'Báo cáo', icon: '📈' },
   { to: '/reviews', label: 'Đánh giá', icon: '⭐' },
   { to: '/promo', label: 'Mã giảm giá', icon: '🎟️' },
-  { to: '/staff', label: 'Nhân viên', icon: '👥' },
   { to: '/realtime', label: 'Real-time', icon: '📡' },
+  { to: '/staff', label: 'Nhân viên', icon: '👥', adminOnly: true },
 ]
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Quản trị viên',
+  MANAGER: 'Quản lý',
+  STAFF: 'Nhân viên',
+}
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
+  const navItems = NAV_ALL.filter(item => !item.adminOnly || user?.role === 'ADMIN')
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -57,7 +64,7 @@ export function AdminLayout() {
           {user && (
             <div className="px-3 py-2 mb-1">
               <p className="text-xs text-emerald-400 truncate">{user.email}</p>
-              <p className="text-[11px] text-emerald-600 uppercase tracking-wide">{user.role}</p>
+              <p className="text-[11px] text-emerald-600 uppercase tracking-wide">{ROLE_LABELS[user.role] ?? user.role}</p>
             </div>
           )}
           <button
