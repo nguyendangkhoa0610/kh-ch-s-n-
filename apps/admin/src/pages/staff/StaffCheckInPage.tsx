@@ -146,24 +146,31 @@ export function StaffCheckInPage() {
               <div><p className="text-slate-400 text-xs mb-1">Số khách</p><p className="text-slate-800">{booking.guests} người</p></div>
             </div>
 
-            {successMsg ? (
+            {successMsg && (
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-4 py-3 text-sm font-semibold text-center">
                 {successMsg}
               </div>
-            ) : (booking.status === 'CONFIRMED' || booking.status === 'PENDING') ? (
+            )}
+
+            {(booking.status === 'CONFIRMED' || booking.status === 'PENDING') && !successMsg && (
               <button onClick={doCheckIn} disabled={acting}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
                 {acting ? 'Đang xử lý...' : '✅ Xác nhận Check-in'}
               </button>
-            ) : booking.status === 'CHECKED_IN' ? (
+            )}
+
+            {booking.status === 'CHECKED_IN' && (
               <button onClick={doCheckOut} disabled={acting}
                 className="w-full py-3.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
                 {acting ? 'Đang xử lý...' : '🌿 Xác nhận Check-out'}
               </button>
-            ) : (
-              <p className="text-center text-sm text-slate-400 py-2">
-                Booking đã {STATUS_LABEL[booking.status]?.toLowerCase() ?? booking.status}.
-              </p>
+            )}
+
+            {booking.status === 'COMPLETED' && !successMsg && (
+              <p className="text-center text-sm text-slate-400 py-2">Booking đã hoàn thành.</p>
+            )}
+            {booking.status === 'CANCELLED' && (
+              <p className="text-center text-sm text-red-400 py-2">Booking đã bị hủy.</p>
             )}
           </div>
         </div>
