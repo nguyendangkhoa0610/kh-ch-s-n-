@@ -1,21 +1,7 @@
 import { Hono } from 'hono'
 import { prisma } from '@tram-huong/database'
-import { verify } from 'hono/jwt'
-
-const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
 
 export const housekeepingRouter = new Hono()
-
-async function requireStaff(c: any) {
-  const header = c.req.header('Authorization')
-  if (!header?.startsWith('Bearer ')) return null
-  try {
-    const payload = await verify(header.slice(7), JWT_SECRET, 'HS256')
-    return payload
-  } catch {
-    return null
-  }
-}
 
 // GET /api/housekeeping — danh sách task (filter by date, status, assignedTo)
 housekeepingRouter.get('/', async (c) => {
@@ -130,7 +116,7 @@ housekeepingRouter.get('/rooms-status', async (c) => {
 
   const tasksByRoom = tasks.reduce<Record<string, typeof tasks>>((acc, t) => {
     if (!acc[t.roomId]) acc[t.roomId] = []
-    acc[t.roomId].push(t)
+    acc[t.roomId]!.push(t)
     return acc
   }, {})
 

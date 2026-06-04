@@ -12,6 +12,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 })
 
@@ -20,7 +22,9 @@ async function registerPushToken(token: string) {
   const { status: existing } = await Notifications.getPermissionsAsync()
   const final = existing === 'granted' ? existing : (await Notifications.requestPermissionsAsync()).status
   if (final !== 'granted') return
-  const expoPushToken = (await Notifications.getExpoPushTokenAsync()).data
+  const expoPushToken = (await Notifications.getExpoPushTokenAsync({
+    projectId: '86f54656-3a13-4d4a-94cb-46c7c880493c',
+  })).data
   await api.post('/notifications/register', { pushToken: expoPushToken }, token)
     .catch(() => {/* silent */})
 }
@@ -30,12 +34,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const authRole = useStore((s) => s.authRole)
   const segments = useSegments()
   const router = useRouter()
-  const notifListener = useRef<any>(null)
+  const notifListener = useRef<ReturnType<typeof Notifications.addNotificationReceivedListener> | null>(null)
 
   useEffect(() => {
     if (token) registerPushToken(token)
     notifListener.current = Notifications.addNotificationReceivedListener(() => {})
-    return () => { if (notifListener.current) Notifications.removeNotificationSubscription(notifListener.current) }
+    return () => { notifListener.current?.remove() }
   }, [token])
 
   useEffect(() => {

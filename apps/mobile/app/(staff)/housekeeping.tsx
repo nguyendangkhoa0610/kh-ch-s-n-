@@ -41,7 +41,7 @@ export default function HousekeepingScreen() {
   const [filter, setFilter] = useState('mine') // mine | all | pending
 
   const load = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true) else setLoading(true)
+    if (isRefresh) { setRefreshing(true) } else { setLoading(true) }
     try {
       const res = await api.get<HKTask[]>(`/housekeeping?date=${today()}`, token ?? undefined)
       setTasks(res.data)

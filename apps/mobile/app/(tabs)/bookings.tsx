@@ -51,7 +51,7 @@ export default function BookingsScreen() {
 
   const load = useCallback(async (isRefresh = false) => {
     if (!token) { setLoading(false); return }
-    if (isRefresh) setRefreshing(true) else setLoading(true)
+    if (isRefresh) { setRefreshing(true) } else { setLoading(true) }
     try {
       const res = await api.get<Booking[]>('/bookings/my', token)
       setBookings(res.data)
