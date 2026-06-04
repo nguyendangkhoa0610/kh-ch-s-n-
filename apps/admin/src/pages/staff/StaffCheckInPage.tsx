@@ -150,7 +150,7 @@ export function StaffCheckInPage() {
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl px-4 py-3 text-sm font-semibold text-center">
                 {successMsg}
               </div>
-            ) : booking.status === 'CONFIRMED' ? (
+            ) : (booking.status === 'CONFIRMED' || booking.status === 'PENDING') ? (
               <button onClick={doCheckIn} disabled={acting}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
                 {acting ? 'Đang xử lý...' : '✅ Xác nhận Check-in'}
@@ -160,10 +160,6 @@ export function StaffCheckInPage() {
                 className="w-full py-3.5 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white font-bold rounded-xl transition-colors">
                 {acting ? 'Đang xử lý...' : '🌿 Xác nhận Check-out'}
               </button>
-            ) : booking.status === 'PENDING' ? (
-              <p className="text-center text-sm text-amber-600 bg-amber-50 rounded-xl py-3">
-                ⏳ Booking chưa được xác nhận. Vui lòng xác nhận trong trang Quản lý Đặt phòng trước.
-              </p>
             ) : (
               <p className="text-center text-sm text-slate-400 py-2">
                 Booking đã {STATUS_LABEL[booking.status]?.toLowerCase() ?? booking.status}.

@@ -93,7 +93,9 @@ export function StaffHomePage() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-mono text-xs text-emerald-700 font-semibold">{b.code}</p>
+                  <p className="font-mono text-xs text-emerald-700 font-semibold">{b.code}
+                    {b.status === 'PENDING' && <span className="ml-1 text-amber-600 font-normal">(chưa xác nhận)</span>}
+                  </p>
                   <p className="text-xs text-slate-400">{b.user.phone}</p>
                 </div>
                 <button

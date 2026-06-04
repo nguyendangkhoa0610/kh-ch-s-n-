@@ -131,7 +131,7 @@ mobileStaffRouter.get('/bookings/today', staffAuth, async (c) => {
 
   const [arrivals, departures] = await Promise.all([
     prisma.booking.findMany({
-      where: { status: 'CONFIRMED', checkIn: { gte: today, lt: tomorrow } },
+      where: { status: { in: ['PENDING', 'CONFIRMED'] }, checkIn: { gte: today, lt: tomorrow } },
       select,
       orderBy: { checkIn: 'asc' },
     }),
@@ -193,6 +193,9 @@ mobileStaffRouter.patch('/bookings/:id/checkin', staffAuth, async (c) => {
   if (!booking) return c.json({ error: 'Booking không tồn tại' }, 404)
   if (booking.status === 'CHECKED_IN') {
     return c.json({ data: { alreadyCheckedIn: true, booking } })
+  }
+  if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
+    return c.json({ error: `Không thể check-in booking ở trạng thái ${booking.status}` }, 400)
   }
 
   const updated = await prisma.booking.update({
@@ -289,7 +292,7 @@ mobileStaffRouter.get('/stats', staffAuth, async (c) => {
 
   const [pendingSOS, checkInsToday, pendingBookings] = await Promise.all([
     prisma.sOSAlert.count({ where: { status: 'NEW' } }),
-    prisma.booking.count({ where: { status: 'CONFIRMED', checkIn: { gte: today, lt: tomorrow } } }),
+    prisma.booking.count({ where: { status: { in: ['PENDING', 'CONFIRMED'] }, checkIn: { gte: today, lt: tomorrow } } }),
     prisma.booking.count({ where: { status: 'PENDING' } }),
   ])
 
