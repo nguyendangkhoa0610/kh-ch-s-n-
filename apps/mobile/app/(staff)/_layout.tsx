@@ -44,6 +44,14 @@ export default function StaffTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="housekeeping"
+        options={{
+          title: 'Dọn phòng',
+          tabBarIcon: ({ color, size }) => <Ionicons name="brush" size={size} color={color} />,
+          headerTitle: 'Housekeeping',
+        }}
+      />
+      <Tabs.Screen
         name="report"
         options={{
           title: 'Báo cáo',

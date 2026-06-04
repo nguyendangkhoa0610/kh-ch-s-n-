@@ -282,6 +282,62 @@ mobileStaffRouter.post('/messages', staffAuth, async (c) => {
   return c.json({ data: message }, 201)
 })
 
+// ── POST /api/mobile/staff/maintenance ───────────────────────────────────────
+
+mobileStaffRouter.post('/maintenance', staffAuth, async (c) => {
+  const staff = c.get('staff')
+  const body = await c.req.json<{
+    roomId: string; title: string; description: string
+    category?: string; priority?: string; photoUrl?: string
+  }>()
+  if (!body.roomId || !body.title) return c.json({ error: 'Thiếu roomId hoặc title' }, 400)
+
+  const req = await prisma.maintenanceRequest.create({
+    data: {
+      roomId: body.roomId,
+      reporterId: staff.sub,
+      title: body.title,
+      description: body.description ?? '',
+      category: body.category ?? 'OTHER',
+      priority: body.priority ?? 'NORMAL',
+      photoUrl: body.photoUrl,
+    },
+    include: { room: { select: { number: true } } },
+  })
+  return c.json({ data: req }, 201)
+})
+
+// ── GET /api/mobile/staff/maintenance ────────────────────────────────────────
+
+mobileStaffRouter.get('/maintenance', staffAuth, async (c) => {
+  const status = c.req.query('status')
+  const reqs = await prisma.maintenanceRequest.findMany({
+    where: status ? { status } : {},
+    include: {
+      room: { select: { number: true, roomType: { select: { name: true } } } },
+      reporter: { select: { name: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+  return c.json({ data: reqs })
+})
+
+// ── PATCH /api/mobile/staff/maintenance/:id ───────────────────────────────────
+
+mobileStaffRouter.patch('/maintenance/:id', staffAuth, async (c) => {
+  const id = c.req.param('id')
+  const { status } = await c.req.json<{ status: string }>()
+  const req = await prisma.maintenanceRequest.update({
+    where: { id },
+    data: {
+      status,
+      ...(status === 'RESOLVED' ? { resolvedAt: new Date() } : {}),
+    },
+  })
+  return c.json({ data: req })
+})
+
 // ── GET /api/mobile/staff/stats ───────────────────────────────────────────────
 
 mobileStaffRouter.get('/stats', staffAuth, async (c) => {

@@ -1,13 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal,
+  Image, TextInput,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
+import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useStore } from '../../lib/store'
 import { api } from '../../lib/api'
+
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD}/image/upload`
+const CLOUDINARY_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_PRESET ?? 'tram_huong'
 
 type LeaderEntry = { rank: number; name: string; ecoPoints: number }
 
@@ -27,16 +32,14 @@ const ECO_LEVELS = [
   { name: 'Hương Rừng', min: 600 },
 ]
 
-const GALLERY_PLACEHOLDERS = [
-  { color: '#1B4332', emoji: '🌿' },
-  { color: '#2D6A4F', emoji: '🏊' },
-  { color: '#C9A24B', emoji: '🌅' },
-  { color: '#065F46', emoji: '🌳' },
-]
+type ReviewForm = {
+  overallRating: number; cleanlinessRating: number; serviceRating: number; locationRating: number; comment: string
+}
 
 export default function MoreScreen() {
   const router = useRouter()
   const token = useStore((s) => s.token)
+  const booking = useStore((s) => s.booking)
   const completedChallenges = useStore((s) => s.completedChallenges)
   const ecoPoints = useStore((s) => s.ecoPoints)
   const completeChallenge = useStore((s) => s.completeChallenge)
@@ -45,6 +48,13 @@ export default function MoreScreen() {
 
   const [showBoard, setShowBoard] = useState(false)
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
+  const [gallery, setGallery] = useState<string[]>([])
+  const [uploadingGallery, setUploadingGallery] = useState(false)
+  const [showReview, setShowReview] = useState(false)
+  const [reviewForm, setReviewForm] = useState<ReviewForm>({
+    overallRating: 5, cleanlinessRating: 5, serviceRating: 5, locationRating: 5, comment: '',
+  })
+  const [submittingReview, setSubmittingReview] = useState(false)
 
   const level =
     [...ECO_LEVELS].reverse().find((l) => ecoPoints >= l.min) ?? ECO_LEVELS[0]
@@ -65,6 +75,39 @@ export default function MoreScreen() {
       setLeaderboard(res.data)
     } catch { /* silent */ }
   }, [token])
+
+  const pickAndUploadImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) { Alert.alert('Cần quyền truy cập thư viện ảnh'); return }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'], quality: 0.8, allowsEditing: true,
+    })
+    if (result.canceled || !result.assets[0]) return
+
+    setUploadingGallery(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', { uri: result.assets[0].uri, type: 'image/jpeg', name: 'photo.jpg' } as any)
+      formData.append('upload_preset', CLOUDINARY_PRESET)
+      const r = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData })
+      const data = await r.json()
+      if (data.secure_url) setGallery(prev => [data.secure_url, ...prev])
+    } catch { Alert.alert('Lỗi', 'Không thể tải ảnh lên') } finally { setUploadingGallery(false) }
+  }
+
+  const submitReview = async () => {
+    if (!booking || !token) return
+    setSubmittingReview(true)
+    try {
+      await api.post('/mobile/review', { bookingId: booking.id, ...reviewForm }, token)
+      setShowReview(false)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      Alert.alert('Cảm ơn!', 'Đánh giá của bạn đã được gửi thành công.')
+    } catch (e: any) {
+      Alert.alert('Lỗi', e.message ?? 'Không thể gửi đánh giá')
+    } finally { setSubmittingReview(false) }
+  }
 
   const handleComplete = async (c: (typeof ECO_CHALLENGES)[0]) => {
     if (completedChallenges.includes(c.id)) return
@@ -167,23 +210,39 @@ export default function MoreScreen() {
       {/* Sen Vàng Memory */}
       <Text style={styles.section}>Sen Vàng Memory</Text>
       <View style={styles.gallery}>
-        {GALLERY_PLACEHOLDERS.map((p, i) => (
-          <TouchableOpacity
-            key={i}
-            style={[styles.galleryItem, { backgroundColor: p.color }]}
-            onPress={() => Alert.alert('Sen Vàng Memory', 'Tính năng gallery sẽ cho phép lưu và chia sẻ ký ức tại resort.')}
-          >
-            <Text style={{ fontSize: 32 }}>{p.emoji}</Text>
+        {gallery.map((uri, i) => (
+          <TouchableOpacity key={i} style={styles.galleryItem} activeOpacity={0.85}>
+            <Image source={{ uri }} style={{ width: '100%', height: '100%', borderRadius: 12 }} />
           </TouchableOpacity>
         ))}
         <TouchableOpacity
           style={[styles.galleryItem, styles.galleryAdd]}
-          onPress={() => Alert.alert('Thêm ảnh', 'Chọn ảnh từ thư viện hoặc chụp mới.')}
+          onPress={pickAndUploadImage}
+          disabled={uploadingGallery}
+          activeOpacity={0.75}
         >
-          <Ionicons name="camera-outline" size={26} color="#9CA3AF" />
-          <Text style={styles.galleryAddText}>Thêm</Text>
+          {uploadingGallery
+            ? <Text style={{ color: '#9CA3AF', fontSize: 11 }}>Đang tải...</Text>
+            : <>
+                <Ionicons name="camera-outline" size={26} color="#9CA3AF" />
+                <Text style={styles.galleryAddText}>Thêm ảnh</Text>
+              </>
+          }
         </TouchableOpacity>
       </View>
+
+      {/* Rating sau check-out */}
+      {booking?.status === 'COMPLETED' && (
+        <TouchableOpacity style={styles.ratingCard} onPress={() => setShowReview(true)} activeOpacity={0.85}>
+          <LinearGradient colors={['#C9A24B', '#B8862E']} style={styles.ratingGrad}>
+            <Ionicons name="star" size={24} color="#fff" />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.ratingTitle}>Đánh giá kỳ nghỉ của bạn</Text>
+              <Text style={styles.ratingSub}>Chia sẻ trải nghiệm tại Trầm Hương</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
 
       {/* SOS */}
       <TouchableOpacity
@@ -211,6 +270,59 @@ export default function MoreScreen() {
         <Ionicons name="log-out-outline" size={17} color="#9CA3AF" />
         <Text style={styles.logoutText}>Đăng xuất</Text>
       </TouchableOpacity>
+
+      {/* Review Modal */}
+      <Modal visible={showReview} animationType="slide" transparent onRequestClose={() => setShowReview(false)}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modalCard, { paddingBottom: 40 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>⭐ Đánh giá kỳ nghỉ</Text>
+              <TouchableOpacity onPress={() => setShowReview(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {([
+              ['overallRating', 'Tổng thể'],
+              ['cleanlinessRating', 'Vệ sinh'],
+              ['serviceRating', 'Dịch vụ'],
+              ['locationRating', 'Vị trí'],
+            ] as const).map(([key, label]) => (
+              <View key={key} style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 }}>{label}</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <TouchableOpacity key={star} onPress={() => setReviewForm(f => ({ ...f, [key]: star }))}>
+                      <Ionicons
+                        name={reviewForm[key] >= star ? 'star' : 'star-outline'}
+                        size={28}
+                        color={reviewForm[key] >= star ? '#C9A24B' : '#D1D5DB'}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ))}
+            <TextInput
+              style={styles.reviewInput}
+              placeholder="Chia sẻ cảm nhận của bạn..."
+              value={reviewForm.comment}
+              onChangeText={t => setReviewForm(f => ({ ...f, comment: t }))}
+              multiline numberOfLines={4}
+              placeholderTextColor="#9CA3AF"
+            />
+            <TouchableOpacity
+              style={[styles.boardBtn, { backgroundColor: '#C9A24B', marginTop: 16 }]}
+              onPress={submitReview}
+              disabled={submittingReview}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Leaderboard Modal */}
       <Modal visible={showBoard} animationType="slide" transparent onRequestClose={() => setShowBoard(false)}>
@@ -308,4 +420,12 @@ const styles = StyleSheet.create({
     gap: 6, paddingVertical: 12,
   },
   logoutText: { fontSize: 14, color: '#9CA3AF' },
+  ratingCard: { borderRadius: 14, overflow: 'hidden', marginBottom: 20 },
+  ratingGrad: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  ratingTitle: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  ratingSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  reviewInput: {
+    backgroundColor: '#F9F3E8', borderRadius: 12, padding: 12,
+    fontSize: 14, color: '#1A1A1A', minHeight: 100, textAlignVertical: 'top',
+  },
 })

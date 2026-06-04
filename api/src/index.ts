@@ -16,6 +16,14 @@ import { mobileRouter } from './routes/mobile.js'
 import { mobileStaffRouter } from './routes/mobile-staff.js'
 import { reviewsRouter } from './routes/reviews.js'
 import { promoRouter } from './routes/promo.js'
+import { housekeepingRouter } from './routes/housekeeping.js'
+import { settingsRouter } from './routes/settings.js'
+import { exportRouter } from './routes/export.js'
+import { menuRouter } from './routes/menu.js'
+import { vouchersRouter } from './routes/vouchers.js'
+import { wishlistRouter } from './routes/wishlist.js'
+import { notificationsRouter } from './routes/notifications.js'
+import { pricingRouter } from './routes/pricing.js'
 import { sendBookingReminder } from './lib/email.js'
 import { prisma } from '@tram-huong/database'
 
@@ -95,6 +103,14 @@ app.route('/mobile', mobileRouter)
 app.route('/mobile/staff', mobileStaffRouter)
 app.route('/reviews', reviewsRouter)
 app.route('/promo', promoRouter)
+app.route('/housekeeping', housekeepingRouter)
+app.route('/settings', settingsRouter)
+app.route('/export', exportRouter)
+app.route('/menu', menuRouter)
+app.route('/vouchers', vouchersRouter)
+app.route('/wishlist', wishlistRouter)
+app.route('/notifications', notificationsRouter)
+app.route('/pricing', pricingRouter)
 
 // ── Reminder cron job — chạy mỗi ngày 08:00 ───────────────────────────────
 async function sendCheckInReminders() {

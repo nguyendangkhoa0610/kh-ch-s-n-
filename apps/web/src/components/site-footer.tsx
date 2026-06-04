@@ -7,6 +7,7 @@ const EXPLORE_LINKS = [
   { href: "/lien-he", label: "Liên hệ & FAQ" },
   { href: "/dat-phong", label: "Đặt phòng" },
   { href: "/dat-phong/tra-cuu", label: "Tra cứu đặt phòng" },
+  { href: "/voucher", label: "🎁 Gift Voucher" },
 ];
 
 function LogoMark() {

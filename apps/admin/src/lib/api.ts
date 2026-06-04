@@ -81,7 +81,7 @@ export type Booking = {
   status: string
   notes: string | null
   createdAt: string
-  user: { name: string; email: string; phone: string }
+  user: { id: string; name: string; email: string; phone: string }
   room: { number: string; roomType: { name: string } } | null
 }
 
@@ -93,6 +93,52 @@ export type Summary = {
   roomsOccupied: number
   roomsTotal: number
   recentBookings: Booking[]
+}
+
+export type HousekeepingTask = {
+  id: string
+  type: 'CHECKOUT' | 'STAYOVER' | 'INSPECTION' | 'DEEP_CLEAN'
+  status: 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SKIPPED'
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+  notes: string | null
+  scheduledFor: string
+  startedAt: string | null
+  completedAt: string | null
+  room: { id: string; number: string; floor: number; roomType: { name: string } }
+  assignedTo: { id: string; name: string } | null
+}
+
+export type Staff = { id: string; name: string; role: string }
+
+export type MenuItem = {
+  id: string; name: string; nameEn: string | null; description: string | null
+  category: string; price: number; image: string | null
+  isActive: boolean; isVeg: boolean; sortOrder: number
+}
+
+export type FoodOrder = {
+  id: string; status: string; totalAmount: number; notes: string | null; createdAt: string
+  booking: { code: string; room: { number: string } | null }
+  user: { name: string; phone: string | null }
+  items: { id: string; quantity: number; unitPrice: number; menuItem: { name: string } }[]
+}
+
+export type GiftVoucher = {
+  id: string; code: string; value: number; status: string
+  fromName: string; fromEmail: string; toName: string; toEmail: string
+  message: string | null; expiresAt: string; usedAt: string | null; createdAt: string
+}
+
+export type SeasonalPrice = {
+  id: string; name: string; startDate: string; endDate: string
+  priceMultiplier: number; fixedPrice: number | null; isActive: boolean
+  roomType: { name: string; slug: string; basePrice: number }
+}
+
+export type GuestProfile = {
+  user: { id: string; name: string; email: string | null; phone: string | null; avatar: string | null; ecoPoints: number; createdAt: string }
+  bookings: Booking[]
+  stats: { totalBookings: number; completedBookings: number; cancelledBookings: number; totalSpend: number }
 }
 
 export const api = {
@@ -117,4 +163,57 @@ export const api = {
   // Activities
   getActivities: () => get<{ id: string; slug: string; name: string; price: number; duration: number; maxSlots: number; category: string; isActive: boolean }[]>('/activities'),
   toggleActivity: (id: string, isActive: boolean) => patch<unknown>(`/activities/${id}`, { isActive }),
+
+  // Housekeeping
+  getHousekeepingTasks: (date?: string, status?: string) =>
+    get<HousekeepingTask[]>(`/housekeeping?${date ? `date=${date}` : ''}${status ? `&status=${status}` : ''}`),
+  getRoomsStatus: () => get<(Room & { tasks: HousekeepingTask[] })[]>('/housekeeping/rooms-status'),
+  createHousekeepingTask: (data: { roomId: string; type?: string; priority?: string; assignedToId?: string; notes?: string; scheduledFor?: string }) =>
+    post<HousekeepingTask>('/housekeeping', data),
+  updateHousekeepingTask: (id: string, data: { status?: string; assignedToId?: string; notes?: string; priority?: string }) =>
+    patch<HousekeepingTask>(`/housekeeping/${id}`, data),
+  deleteHousekeepingTask: (id: string) => del(`/housekeeping/${id}`),
+  autoGenerateHousekeeping: () => post<{ count: number }>('/housekeeping/auto-generate', {}),
+
+  // Settings
+  getSettings: () => get<Record<string, string>>('/settings'),
+  updateSettings: (data: Record<string, string>) => {
+    const h = headers()
+    return fetch(`${BASE}/settings`, {
+      method: 'PUT', headers: h, body: JSON.stringify(data),
+    }).then(r => r.json() as Promise<{ ok: boolean }>)
+  },
+
+  // Staff list (for housekeeping assignment)
+  getStaffList: () => get<Staff[]>('/staff'),
+
+  // Guest profile
+  getGuestProfile: (userId: string) => get<GuestProfile>(`/bookings/guest-profile/${userId}`),
+
+  // Menu
+  getAllMenuItems: () => get<MenuItem[]>('/menu/all'),
+  createMenuItem: (data: Partial<MenuItem>) => post<MenuItem>('/menu', data),
+  updateMenuItem: (id: string, data: Partial<MenuItem>) => patch<MenuItem>(`/menu/${id}`, data),
+  deleteMenuItem: (id: string) => del(`/menu/${id}`),
+  getFoodOrders: (status?: string) =>
+    get<FoodOrder[]>('/menu/orders' + (status ? `?status=${status}` : '')),
+  updateFoodOrderStatus: (id: string, status: string) =>
+    patch<FoodOrder>(`/menu/orders/${id}`, { status }),
+
+  // Vouchers
+  getVouchers: () => get<GiftVoucher[]>('/vouchers'),
+  createVoucher: (data: { value: number; fromName: string; fromEmail: string; toName: string; toEmail: string; message?: string }) =>
+    post<GiftVoucher>('/vouchers', data),
+  deleteVoucher: (id: string) => del(`/vouchers/${id}`),
+
+  // Dynamic pricing
+  getPricing: () => get<SeasonalPrice[]>('/pricing'),
+  createPricing: (data: { roomTypeId: string; name: string; startDate: string; endDate: string; priceMultiplier?: number; fixedPrice?: number }) =>
+    post<SeasonalPrice>('/pricing', data),
+  updatePricing: (id: string, data: Partial<SeasonalPrice>) => patch<SeasonalPrice>(`/pricing/${id}`, data),
+  deletePricing: (id: string) => del(`/pricing/${id}`),
+
+  // Push notifications
+  sendNotification: (data: { roles?: string[]; userIds?: string[]; title: string; message: string }) =>
+    post<{ sent: number }>('/notifications/send', data),
 }

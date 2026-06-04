@@ -445,6 +445,43 @@ mobileRouter.post('/eco/complete', guestAuth, async (c) => {
   return c.json({ data: { ecoPoints: updated.ecoPoints, completedChallenges: updated.completedChallenges } })
 })
 
+// POST /api/mobile/review — gửi đánh giá sau check-out
+mobileRouter.post('/review', guestAuth, async (c) => {
+  const guest = c.get('guest') as any
+  const body = await c.req.json<{
+    bookingId: string
+    overallRating: number
+    cleanlinessRating?: number
+    serviceRating?: number
+    locationRating?: number
+    comment?: string
+  }>()
+
+  if (!body.bookingId || !body.overallRating) {
+    return c.json({ error: 'Thiếu bookingId hoặc overallRating' }, 400)
+  }
+
+  const booking = await prisma.booking.findFirst({
+    where: { id: body.bookingId, userId: guest.sub },
+  })
+  if (!booking) return c.json({ error: 'Booking không tồn tại' }, 404)
+
+  const existing = await prisma.bookingReview.findUnique({ where: { bookingId: body.bookingId } })
+  if (existing) return c.json({ error: 'Bạn đã đánh giá booking này rồi' }, 409)
+
+  const review = await prisma.bookingReview.create({
+    data: {
+      bookingId: body.bookingId,
+      overallRating: body.overallRating,
+      cleanlinessRating: body.cleanlinessRating ?? 5,
+      serviceRating: body.serviceRating ?? 5,
+      locationRating: body.locationRating ?? 5,
+      comment: body.comment,
+    },
+  })
+  return c.json({ data: review }, 201)
+})
+
 // GET /api/mobile/eco/leaderboard — top khách xanh
 mobileRouter.get('/eco/leaderboard', guestAuth, async (c) => {
   const top = await prisma.user.findMany({

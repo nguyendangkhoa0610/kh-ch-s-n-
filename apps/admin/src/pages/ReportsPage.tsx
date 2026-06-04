@@ -28,25 +28,39 @@ export function ReportsPage() {
   const avgPerBooking = totalBookings ? Math.round(totalRevenue / totalBookings) : 0
   const peakDay = data.reduce((best, d) => d.revenue > (best?.revenue ?? 0) ? d : best, data[0])
 
+  const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+  const exportRevenue = () => window.open(`${BASE}/export/revenue?days=${days}`, '_blank')
+  const exportBookings = () => window.open(`${BASE}/export/bookings`, '_blank')
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>Báo cáo</h2>
-        <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
-          {[
-            { d: 7, label: '7N' }, { d: 14, label: '14N' },
-            { d: 30, label: '1T' }, { d: 90, label: '3T' },
-          ].map(({ d, label }) => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                days === d ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+            {[
+              { d: 7, label: '7N' }, { d: 14, label: '14N' },
+              { d: 30, label: '1T' }, { d: 90, label: '3T' },
+            ].map(({ d, label }) => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  days === d ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={exportRevenue}
+            className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 border border-emerald-200">
+            ↓ Doanh thu CSV
+          </button>
+          <button onClick={exportBookings}
+            className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 border border-blue-200">
+            ↓ Đặt phòng CSV
+          </button>
         </div>
       </div>
 

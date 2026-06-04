@@ -20,15 +20,20 @@ model User {
   avatar       String?
   role         String  @default("GUEST") // GUEST | STAFF | MANAGER | ADMIN
   passwordHash String?
+  pushToken    String?
 
   ecoPoints           Int      @default(0)
   completedChallenges String[] @default([])
 
-  bookings         Booking[]
-  shifts           Shift[]
-  alerts           SOSAlert[]
-  sentMessages     Message[]        @relation("SentMessages")
-  incidentReports  IncidentReport[] @relation("IncidentReports")
+  bookings            Booking[]
+  shifts              Shift[]
+  alerts              SOSAlert[]
+  sentMessages        Message[]          @relation("SentMessages")
+  incidentReports     IncidentReport[]   @relation("IncidentReports")
+  housekeepingTasks   HousekeepingTask[] @relation("AssignedTasks")
+  maintenanceReports  MaintenanceRequest[]
+  wishlist            Wishlist[]
+  foodOrders          FoodOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,7 +56,9 @@ model RoomType {
   images      String  // JSON array stored as string
   badge       String?
 
-  rooms Room[]
+  rooms          Room[]
+  wishlistItems  Wishlist[]
+  seasonalPrices SeasonalPrice[]
 
   @@map("room_types")
 }
@@ -64,7 +71,9 @@ model Room {
   status     String   @default("AVAILABLE") // AVAILABLE | OCCUPIED | MAINTENANCE
   floor      Int      @default(1)
 
-  bookings Booking[]
+  bookings            Booking[]
+  housekeepingTasks   HousekeepingTask[]
+  maintenanceRequests MaintenanceRequest[]
 
   @@map("rooms")
 }
@@ -81,12 +90,17 @@ model Booking {
   checkOut DateTime
   guests   Int
 
-  totalAmount Int
-  status      String @default("PENDING") // PENDING | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED
+  totalAmount    Int
+  promoCode      String?
+  discountAmount Int     @default(0)
+  packageType    String?
+  status         String  @default("PENDING") // PENDING | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED
 
   payment    Payment?
   activities ActivityBooking[]
   digitalKey DigitalKey?
+  foodOrders FoodOrder[]
+  review     BookingReview?
 
   notes String?
 
@@ -263,4 +277,154 @@ model Setting {
   updatedBy String   @default("system")
 
   @@map("settings")
+}
+
+// Housekeeping — dọn phòng
+model HousekeepingTask {
+  id           String    @id @default(cuid())
+  roomId       String
+  room         Room      @relation(fields: [roomId], references: [id])
+  assignedToId String?
+  assignedTo   User?     @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  type         String    @default("CHECKOUT") // CHECKOUT | STAYOVER | INSPECTION | DEEP_CLEAN
+  status       String    @default("PENDING")  // PENDING | IN_PROGRESS | DONE | SKIPPED
+  priority     String    @default("NORMAL")   // LOW | NORMAL | HIGH | URGENT
+  notes        String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  scheduledFor DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+
+  @@map("housekeeping_tasks")
+}
+
+// Maintenance — báo sự cố phòng
+model MaintenanceRequest {
+  id          String    @id @default(cuid())
+  roomId      String
+  room        Room      @relation(fields: [roomId], references: [id])
+  reporterId  String
+  reporter    User      @relation(fields: [reporterId], references: [id])
+  title       String
+  description String
+  photoUrl    String?
+  category    String    @default("OTHER") // PLUMBING | ELECTRICAL | AC | FURNITURE | CLEANING | OTHER
+  priority    String    @default("NORMAL")
+  status      String    @default("OPEN")  // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("maintenance_requests")
+}
+
+// Menu nhà hàng
+model MenuItem {
+  id          String      @id @default(cuid())
+  name        String
+  nameEn      String?
+  description String?
+  category    String      // BREAKFAST | LUNCH | DINNER | DRINKS | SNACKS
+  price       Int
+  image       String?
+  isActive    Boolean     @default(true)
+  isVeg       Boolean     @default(false)
+  sortOrder   Int         @default(0)
+  orderItems  FoodOrderItem[]
+
+  @@map("menu_items")
+}
+
+// Đặt món
+model FoodOrder {
+  id         String          @id @default(cuid())
+  bookingId  String
+  booking    Booking         @relation(fields: [bookingId], references: [id])
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+  status     String          @default("PENDING") // PENDING | CONFIRMED | PREPARING | DELIVERED | CANCELLED
+  totalAmount Int
+  notes      String?
+  deliveryTime DateTime?
+  items      FoodOrderItem[]
+  createdAt  DateTime        @default(now())
+
+  @@map("food_orders")
+}
+
+model FoodOrderItem {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      FoodOrder @relation(fields: [orderId], references: [id])
+  menuItemId String
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  unitPrice  Int
+  notes      String?
+
+  @@map("food_order_items")
+}
+
+// Gift voucher
+model GiftVoucher {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  value       Int       // VND
+  message     String?
+  fromName    String
+  fromEmail   String
+  toName      String
+  toEmail     String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedByBooking String?
+  status      String    @default("ACTIVE") // ACTIVE | USED | EXPIRED
+  paymentId   String?
+  createdAt   DateTime  @default(now())
+
+  @@map("gift_vouchers")
+}
+
+// Wishlist — phòng yêu thích
+model Wishlist {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, roomTypeId])
+  @@map("wishlists")
+}
+
+// Seasonal / dynamic pricing
+model SeasonalPrice {
+  id         String   @id @default(cuid())
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+  name       String   // "Tết", "Hè 2025", etc.
+  startDate  DateTime
+  endDate    DateTime
+  priceMultiplier Float  @default(1.0) // 1.5 = +50%
+  fixedPrice Int?        // override hẳn nếu set
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("seasonal_prices")
+}
+
+// Rating sau check-out (mobile)
+model BookingReview {
+  id           String   @id @default(cuid())
+  bookingId    String   @unique
+  booking      Booking  @relation(fields: [bookingId], references: [id])
+  overallRating Int     // 1-5
+  cleanlinessRating Int @default(5)
+  serviceRating    Int  @default(5)
+  locationRating   Int  @default(5)
+  comment      String?
+  photos       String[] @default([])
+  createdAt    DateTime @default(now())
+
+  @@map("booking_reviews")
 }

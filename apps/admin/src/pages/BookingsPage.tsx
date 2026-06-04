@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type Booking } from '../lib/api'
+import { api, type Booking, type GuestProfile } from '../lib/api'
 
 const STATUSES = ['', 'PENDING', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED'] as const
 
@@ -68,6 +68,16 @@ export function BookingsPage() {
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
   const [detail, setDetail] = useState<Booking | null>(null)
+  const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(false)
+
+  const showGuestProfile = async (userId: string) => {
+    setLoadingProfile(true)
+    try {
+      const profile = await api.getGuestProfile(userId)
+      setGuestProfile(profile)
+    } catch { /* ignore */ } finally { setLoadingProfile(false) }
+  }
 
   function load() {
     setLoading(true)
@@ -193,7 +203,10 @@ export function BookingsPage() {
                         </button>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-sm font-medium text-slate-800">{b.user.name}</p>
+                        <button onClick={() => showGuestProfile(b.user.id)}
+                          className="text-sm font-medium text-slate-800 hover:text-emerald-700 hover:underline text-left">
+                          {b.user.name}
+                        </button>
                         <p className="text-xs text-slate-400">{b.user.phone}</p>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
@@ -245,6 +258,75 @@ export function BookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Guest Profile modal */}
+      {(guestProfile || loadingProfile) && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setGuestProfile(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {loadingProfile ? (
+              <div className="p-12 text-center text-slate-400">Đang tải hồ sơ khách...</div>
+            ) : guestProfile ? (
+              <>
+                <div className="bg-slate-800 px-6 py-5 text-white flex items-center justify-between sticky top-0 rounded-t-2xl">
+                  <div>
+                    <p className="text-slate-300 text-xs">Hồ sơ khách hàng</p>
+                    <p className="font-bold text-lg">{guestProfile.user.name}</p>
+                  </div>
+                  <button onClick={() => setGuestProfile(null)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">✕</button>
+                </div>
+                <div className="p-6 space-y-5 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Email', value: guestProfile.user.email ?? '—' },
+                      { label: 'Điện thoại', value: guestProfile.user.phone ?? '—' },
+                      { label: 'Eco Points', value: `${guestProfile.user.ecoPoints} điểm` },
+                      { label: 'Thành viên từ', value: new Date(guestProfile.user.createdAt).toLocaleDateString('vi-VN') },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="bg-slate-50 rounded-xl p-3">
+                        <p className="text-xs text-slate-400 mb-0.5">{label}</p>
+                        <p className="font-semibold text-slate-700">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {[
+                      { label: 'Tổng booking', value: guestProfile.stats.totalBookings, color: 'text-blue-600' },
+                      { label: 'Hoàn thành', value: guestProfile.stats.completedBookings, color: 'text-emerald-600' },
+                      { label: 'Đã hủy', value: guestProfile.stats.cancelledBookings, color: 'text-red-500' },
+                      { label: 'Chi tiêu', value: formatPrice(guestProfile.stats.totalSpend), color: 'text-amber-600' },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} className="bg-white border border-slate-100 rounded-xl p-3">
+                        <p className={`font-bold ${color} text-sm`}>{value}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Lịch sử đặt phòng</p>
+                    <div className="space-y-2">
+                      {guestProfile.bookings.map(b => (
+                        <div key={b.id} className="flex items-center gap-3 border border-slate-100 rounded-xl p-3">
+                          <div className="flex-1">
+                            <span className="font-mono text-xs font-bold text-emerald-700">{b.code}</span>
+                            <span className="text-xs text-slate-500 ml-2">{b.room?.roomType?.name ?? '—'}</span>
+                            <p className="text-xs text-slate-400 mt-0.5">{formatDate(b.checkIn)} → {formatDate(b.checkOut)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-slate-700">{formatPrice(b.totalAmount)}</p>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_META[b.status]?.color ?? 'bg-slate-100 text-slate-500'}`}>
+                              {STATUS_META[b.status]?.label ?? b.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Detail modal */}
       {detail && (

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ROOM_TYPES } from "@/lib/room-data";
 import { formatPrice } from "@tram-huong/shared";
+import { WishlistButton } from "./wishlist-button";
 
 function PersonIcon() {
   return (
@@ -56,6 +57,7 @@ export function RoomTypesSection() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                <WishlistButton roomTypeId={room.slug} size="sm" className="absolute top-3 right-3 z-10" />
                 {room.badge && (
                   <span className="absolute top-4 left-4 bg-amber-400 text-amber-900 text-[11px] font-semibold px-3 py-1 rounded-full">
                     {room.badge}

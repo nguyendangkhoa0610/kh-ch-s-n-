@@ -312,3 +312,45 @@ bookingsRouter.post('/:id/cancel', async (c) => {
     data: { success: true, refundPolicy, message: refundMessages[refundPolicy] },
   })
 })
+
+// GET /api/bookings/guest-profile/:userId — lịch sử booking của khách (admin)
+bookingsRouter.get('/guest-profile/:userId', async (c) => {
+  const userId = c.req.param('userId')
+
+  const [user, bookings] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, name: true, email: true, phone: true, avatar: true,
+        ecoPoints: true, createdAt: true,
+      },
+    }),
+    prisma.booking.findMany({
+      where: { userId },
+      include: {
+        room: { include: { roomType: { select: { name: true } } } },
+        payment: { select: { status: true, amount: true, method: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
+
+  if (!user) return c.json({ error: 'Không tìm thấy khách' }, 404)
+
+  const totalSpend = bookings
+    .filter(b => b.payment?.status === 'SUCCESS')
+    .reduce((s, b) => s + (b.payment?.amount ?? 0), 0)
+
+  return c.json({
+    data: {
+      user,
+      bookings,
+      stats: {
+        totalBookings: bookings.length,
+        completedBookings: bookings.filter(b => b.status === 'COMPLETED').length,
+        cancelledBookings: bookings.filter(b => b.status === 'CANCELLED').length,
+        totalSpend,
+      },
+    },
+  })
+})

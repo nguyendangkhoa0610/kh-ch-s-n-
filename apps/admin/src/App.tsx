@@ -12,6 +12,11 @@ import { StaffPage } from './pages/StaffPage'
 import { RealtimePage } from './pages/RealtimePage'
 import { ReviewsPage } from './pages/ReviewsPage'
 import { PromoPage } from './pages/PromoPage'
+import { HousekeepingPage } from './pages/HousekeepingPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { MenuPage } from './pages/MenuPage'
+import { VouchersPage } from './pages/VouchersPage'
+import { PricingPage } from './pages/PricingPage'
 import { StaffHomePage } from './pages/staff/StaffHomePage'
 import { StaffCheckInPage } from './pages/staff/StaffCheckInPage'
 import { StaffAlertsPage } from './pages/staff/StaffAlertsPage'
@@ -51,6 +56,11 @@ export default function App() {
           <Route path="/realtime" element={<RealtimePage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/promo" element={<PromoPage />} />
+          <Route path="/housekeeping" element={<HousekeepingPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/vouchers" element={<VouchersPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
         </Route>
 
         {/* Staff — prefix /nv */}

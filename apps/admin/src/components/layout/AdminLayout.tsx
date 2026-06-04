@@ -6,12 +6,17 @@ const NAV_ALL = [
   { to: '/dashboard', label: 'Tổng quan', icon: '📊' },
   { to: '/bookings', label: 'Đặt phòng', icon: '📅' },
   { to: '/rooms', label: 'Phòng', icon: '🛏' },
+  { to: '/housekeeping', label: 'Housekeeping', icon: '🧹' },
   { to: '/activities', label: 'Hoạt động', icon: '🎯' },
+  { to: '/menu', label: 'Nhà hàng', icon: '🍽️' },
   { to: '/reports', label: 'Báo cáo', icon: '📈' },
-  { to: '/reviews', label: 'Đánh giá', icon: '⭐' },
+  { to: '/pricing', label: 'Dynamic Pricing', icon: '💰' },
+  { to: '/vouchers', label: 'Gift Voucher', icon: '🎁' },
   { to: '/promo', label: 'Mã giảm giá', icon: '🎟️' },
+  { to: '/reviews', label: 'Đánh giá', icon: '⭐' },
   { to: '/realtime', label: 'Real-time', icon: '📡' },
   { to: '/staff', label: 'Nhân viên', icon: '👥', adminOnly: true },
+  { to: '/settings', label: 'Cài đặt', icon: '⚙️', adminOnly: true },
 ]
 
 const ROLE_LABELS: Record<string, string> = {
@@ -74,7 +79,7 @@ export function AdminLayout() {
             <span className="text-base">🚪</span>
             Đăng xuất
           </button>
-          <p className="text-emerald-800 text-[10px] px-3 mt-2">v0.2.0 — Phase 3</p>
+          <p className="text-emerald-800 text-[10px] px-3 mt-2">v0.3.0 — Phase 4</p>
         </div>
       </aside>
 
