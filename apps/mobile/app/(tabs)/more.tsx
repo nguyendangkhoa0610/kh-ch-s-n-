@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useStore } from '../../lib/store'
 import { api } from '../../lib/api'
+import { useIsTablet, TABLET_MAX_W } from '../../lib/useTablet'
 
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD}/image/upload`
 const CLOUDINARY_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_PRESET ?? 'tram_huong'
@@ -49,6 +50,7 @@ export default function MoreScreen() {
   const router = useRouter()
   const token = useStore((s) => s.token)
   const booking = useStore((s) => s.booking)
+  const isTablet = useIsTablet()
   const completedChallenges = useStore((s) => s.completedChallenges)
   const ecoPoints = useStore((s) => s.ecoPoints)
   const completeChallenge = useStore((s) => s.completeChallenge)
@@ -173,6 +175,7 @@ export default function MoreScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={[styles.inner, isTablet && styles.innerTablet]}>
       {/* Eco Header */}
       <LinearGradient colors={['#1B4332', '#2D6A4F']} style={styles.ecoHeader}>
         <View style={styles.ecoTop}>
@@ -201,13 +204,13 @@ export default function MoreScreen() {
       </LinearGradient>
 
       {/* Eco Challenges */}
-      <Text style={styles.section}>Thử Thách Xanh</Text>
+      <Text style={[styles.section, isTablet && styles.sectionT]}>Thử Thách Xanh</Text>
       {ECO_CHALLENGES.map((c) => {
         const done = completedChallenges.includes(c.id)
         return (
           <TouchableOpacity
             key={c.id}
-            style={[styles.challenge, done && styles.challengeDone]}
+            style={[styles.challenge, done && styles.challengeDone, isTablet && styles.challengeT]}
             onPress={() => handleComplete(c)}
             disabled={done}
             activeOpacity={0.75}
@@ -336,15 +339,15 @@ export default function MoreScreen() {
       </Modal>
 
       {/* Sen Vàng Memory */}
-      <Text style={styles.section}>Sen Vàng Memory</Text>
-      <View style={styles.gallery}>
+      <Text style={[styles.section, isTablet && styles.sectionT]}>Sen Vàng Memory</Text>
+      <View style={[styles.gallery, isTablet && styles.galleryT]}>
         {gallery.map((uri, i) => (
-          <TouchableOpacity key={i} style={styles.galleryItem} activeOpacity={0.85}>
+          <TouchableOpacity key={i} style={[styles.galleryItem, isTablet && styles.galleryItemT]} activeOpacity={0.85}>
             <Image source={{ uri }} style={{ width: '100%', height: '100%', borderRadius: 12 }} />
           </TouchableOpacity>
         ))}
         <TouchableOpacity
-          style={[styles.galleryItem, styles.galleryAdd]}
+          style={[styles.galleryItem, isTablet && styles.galleryItemT, styles.galleryAdd]}
           onPress={pickAndUploadImage}
           disabled={uploadingGallery}
           activeOpacity={0.75}
@@ -481,6 +484,7 @@ export default function MoreScreen() {
           </View>
         </View>
       </Modal>
+      </View>
     </ScrollView>
   )
 }
@@ -488,6 +492,12 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9F3E8' },
   content: { padding: 16, paddingBottom: 60 },
+  inner: { width: '100%' },
+  innerTablet: { maxWidth: TABLET_MAX_W, alignSelf: 'center' },
+  sectionT: { fontSize: 20 },
+  challengeT: { padding: 18 },
+  galleryT: { gap: 10 },
+  galleryItemT: { width: '31%' },
   ecoHeader: { borderRadius: 16, padding: 20, marginBottom: 20 },
   ecoTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   ecoLevel: { fontSize: 18, fontWeight: '700', color: '#C9A24B' },

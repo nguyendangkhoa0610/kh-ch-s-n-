@@ -1,32 +1,37 @@
+import { useWindowDimensions } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
 export default function TabsLayout() {
   const router = useRouter()
+  const { width } = useWindowDimensions()
+  const isTablet = width >= 768
+  const iconSize = isTablet ? 28 : 22
 
   return (
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: '#1B4332' },
         headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700', fontSize: 16 },
+        headerTitleStyle: { fontWeight: '700', fontSize: isTablet ? 18 : 16 },
         tabBarStyle: {
           backgroundColor: '#1B4332',
           borderTopWidth: 0,
-          height: 64,
-          paddingBottom: 8,
+          height: isTablet ? 80 : 64,
+          paddingBottom: isTablet ? 12 : 8,
+          paddingTop: isTablet ? 6 : 0,
         },
         tabBarActiveTintColor: '#C9A24B',
         tabBarInactiveTintColor: '#86B59A',
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: isTablet ? 12 : 10, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="key"
         options={{
           title: 'Chìa Khóa',
-          tabBarIcon: ({ color, size }) => <Ionicons name="key" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="key" size={iconSize} color={color} />,
           headerTitle: 'Digital Key',
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push('/sos')} style={{ marginRight: 16 }}>
@@ -39,7 +44,7 @@ export default function TabsLayout() {
         name="concierge"
         options={{
           title: 'Trợ Lý AI',
-          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubbles" size={iconSize} color={color} />,
           headerTitle: 'AI Concierge',
         }}
       />
@@ -47,7 +52,7 @@ export default function TabsLayout() {
         name="room"
         options={{
           title: 'Phòng',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={iconSize} color={color} />,
           headerTitle: 'Điều Khiển Phòng',
         }}
       />
@@ -55,7 +60,7 @@ export default function TabsLayout() {
         name="bill"
         options={{
           title: 'Hóa Đơn',
-          tabBarIcon: ({ color, size }) => <Ionicons name="receipt" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="receipt" size={iconSize} color={color} />,
           headerTitle: 'Hóa Đơn',
         }}
       />
@@ -63,7 +68,7 @@ export default function TabsLayout() {
         name="bookings"
         options={{
           title: 'Đặt Phòng',
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="calendar" size={iconSize} color={color} />,
           headerTitle: 'Lịch Sử Đặt Phòng',
         }}
       />
@@ -71,7 +76,7 @@ export default function TabsLayout() {
         name="food"
         options={{
           title: 'Nhà Hàng',
-          tabBarIcon: ({ color, size }) => <Ionicons name="restaurant" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="restaurant" size={iconSize} color={color} />,
           headerTitle: 'Nhà Hàng & Đặt Món',
         }}
       />
@@ -79,7 +84,7 @@ export default function TabsLayout() {
         name="more"
         options={{
           title: 'Khám Phá',
-          tabBarIcon: ({ color, size }) => <Ionicons name="compass" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="compass" size={iconSize} color={color} />,
           headerTitle: 'Khám Phá',
         }}
       />
