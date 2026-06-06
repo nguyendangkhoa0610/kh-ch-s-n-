@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 import { prisma } from '@tram-huong/database'
 import bcrypt from 'bcryptjs'
+import { sendReviewInvite } from '../lib/email.js'
 
 type StaffPayload = { sub: string; role: string; name: string; exp: number }
 type Env = { Variables: { staff: StaffPayload } }
@@ -218,7 +219,26 @@ mobileStaffRouter.patch('/bookings/:id/checkout', staffAuth, async (c) => {
   const updated = await prisma.booking.update({
     where: { id },
     data: { status: 'COMPLETED' },
+    include: {
+      user: true,
+      room: { include: { roomType: true } },
+    },
   })
+
+  // Gửi email mời review async (không block response)
+  if (updated.user.email) {
+    const nights = Math.ceil(
+      (updated.checkOut.getTime() - updated.checkIn.getTime()) / 86_400_000
+    )
+    sendReviewInvite({
+      guestName: updated.user.name,
+      guestEmail: updated.user.email,
+      bookingCode: updated.code,
+      roomName: updated.room?.roomType.name ?? 'Trầm Hương',
+      nights,
+    }).catch(() => {})
+  }
+
   return c.json({ data: { success: true, booking: updated } })
 })
 

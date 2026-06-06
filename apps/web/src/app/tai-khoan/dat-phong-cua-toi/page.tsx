@@ -194,12 +194,18 @@ export default function MyBookingsPage() {
                         </p>
                       </div>
                     )}
-                    {/* Link xem vé / in */}
+                    {/* Link xem vé / in + đánh giá */}
                     <div className="px-5 py-2 border-t border-slate-100 flex items-center justify-between">
                       <Link href={`/dat-phong/xac-nhan/${b.code}`}
                         className="text-xs text-emerald-600 font-semibold hover:underline">
                         🎫 Xem & in vé
                       </Link>
+                      {b.status === "COMPLETED" && (
+                        <Link href={`/dat-phong/danh-gia/${b.code}`}
+                          className="text-xs text-amber-600 font-semibold hover:underline">
+                          ⭐ Đánh giá kỳ nghỉ
+                        </Link>
+                      )}
                     </div>
 
                     {/* Nút hủy — chỉ cho PENDING và CONFIRMED */}

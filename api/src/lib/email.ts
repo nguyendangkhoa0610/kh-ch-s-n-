@@ -445,3 +445,67 @@ export async function sendBookingReminder(params: ReminderParams): Promise<void>
     `,
   }).catch(() => { /* fail silently */ })
 }
+
+// ─── Review Invite Email (sau checkout) ──────────────────
+
+export type ReviewInviteParams = {
+  guestName: string
+  guestEmail: string
+  bookingCode: string
+  roomName: string
+  nights: number
+}
+
+export async function sendReviewInvite(params: ReviewInviteParams): Promise<void> {
+  const client = getResend()
+  if (!client) {
+    console.log(`[Email] Review invite skipped: ${params.guestEmail} (${params.bookingCode})`)
+    return
+  }
+
+  const reviewUrl = `${SITE_URL}/dat-phong/danh-gia/${params.bookingCode}`
+
+  await client.emails.send({
+    from: FROM,
+    to: params.guestEmail,
+    subject: `Cảm ơn bạn đã lưu trú tại Trầm Hương 🌿 — Chia sẻ trải nghiệm của bạn`,
+    html: `
+      <div style="font-family:'Be Vietnam Pro',sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:24px">
+        <div style="background:linear-gradient(135deg,#064e3b,#047857);border-radius:16px;padding:32px;text-align:center;margin-bottom:20px">
+          <p style="color:#6ee7b7;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;margin:0 0 8px">Cảm ơn bạn</p>
+          <h1 style="color:#ffffff;font-family:Georgia,serif;font-size:28px;margin:0 0 8px">Trầm Hương Eco-Resort</h1>
+          <p style="color:#a7f3d0;font-size:14px;margin:0">Hẹn gặp lại bạn lần sau! 🌿</p>
+        </div>
+
+        <div style="background:#ffffff;border-radius:12px;padding:28px;margin-bottom:16px">
+          <h2 style="color:#0f172a;font-size:20px;margin:0 0 12px">Xin chào ${params.guestName} 👋</h2>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px">
+            Cảm ơn bạn đã chọn <strong>Trầm Hương Eco-Resort</strong> cho kỳ nghỉ ${params.nights} đêm vừa rồi.
+            Hy vọng bạn đã có những khoảnh khắc thư giãn tuyệt vời bên thiên nhiên Bình Định!
+          </p>
+          <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 24px">
+            Ý kiến của bạn giúp chúng tôi cải thiện dịch vụ cho những vị khách tiếp theo.
+            Chỉ cần <strong>1 phút</strong> để đánh giá trải nghiệm của bạn nhé!
+          </p>
+
+          <div style="background:#f0fdf4;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center">
+            <p style="color:#6b7280;font-size:12px;margin:0 0 4px">Mã đặt phòng</p>
+            <p style="font-family:monospace;font-size:20px;font-weight:700;color:#059669;margin:0">${params.bookingCode}</p>
+            <p style="color:#6b7280;font-size:13px;margin:6px 0 0">${params.roomName}</p>
+          </div>
+
+          <div style="text-align:center">
+            <a href="${reviewUrl}" style="display:inline-block;background:#059669;color:white;padding:16px 40px;border-radius:999px;text-decoration:none;font-weight:700;font-size:16px">
+              ⭐ Đánh giá ngay
+            </a>
+          </div>
+        </div>
+
+        <div style="text-align:center;color:#9ca3af;font-size:12px;line-height:1.8">
+          <p>Muốn đặt phòng lần sau? <a href="${SITE_URL}/dat-phong" style="color:#059669;text-decoration:none;font-weight:600">Đặt ngay tại đây →</a></p>
+          <p>Trầm Hương Eco-Resort · Xã Cát Khánh, Phù Cát, Bình Định</p>
+        </div>
+      </div>
+    `,
+  }).catch(() => { /* fail silently */ })
+}

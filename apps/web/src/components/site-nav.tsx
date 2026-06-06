@@ -11,6 +11,7 @@ const NAV_KEYS = [
   { href: "/hoat-dong", key: "nav.activities" },
   { href: "/thu-vien", key: "nav.gallery" },
   { href: "/ban-do", key: "nav.map" },
+  { href: "/nha-hang", key: "nav.restaurant" },
   { href: "/lap-lich", key: "nav.aiplan" },
   { href: "/lien-he", key: "nav.contact" },
 ];

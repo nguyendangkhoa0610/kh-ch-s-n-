@@ -9,6 +9,7 @@ export const translations = {
     "nav.gallery": "Thư viện ảnh",
     "nav.contact": "Liên hệ",
     "nav.map": "Bản đồ",
+    "nav.restaurant": "Nhà hàng",
     "nav.aiplan": "Lập lịch AI",
     "nav.book": "Đặt phòng",
 
@@ -94,6 +95,7 @@ export const translations = {
     "nav.gallery": "Gallery",
     "nav.contact": "Contact",
     "nav.map": "Map",
+    "nav.restaurant": "Restaurant",
     "nav.aiplan": "AI Planner",
     "nav.book": "Book Now",
 

@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, Modal,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, Modal, useWindowDimensions,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useStore } from '../../lib/store'
 import { api } from '../../lib/api'
+
+const TABLET_MAX_W = 720
 
 type MenuItem = {
   id: string; name: string; nameEn: string | null; description: string | null
@@ -36,6 +38,8 @@ function formatPrice(n: number) {
 }
 
 export default function FoodScreen() {
+  const { width } = useWindowDimensions()
+  const isTablet = width >= 768
   const token = useStore(s => s.token)
   const booking = useStore(s => s.booking)
   const [tab, setTab] = useState<'menu' | 'orders'>('menu')
@@ -113,12 +117,14 @@ export default function FoodScreen() {
     <View style={{ flex: 1, backgroundColor: '#F9F3E8' }}>
       {/* Tab switcher */}
       <View style={styles.tabBar}>
-        <TouchableOpacity style={[styles.tabBtn, tab === 'menu' && styles.tabBtnActive]} onPress={() => setTab('menu')}>
-          <Text style={[styles.tabText, tab === 'menu' && styles.tabTextActive]}>Thực đơn</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tabBtn, tab === 'orders' && styles.tabBtnActive]} onPress={() => setTab('orders')}>
-          <Text style={[styles.tabText, tab === 'orders' && styles.tabTextActive]}>Đơn của tôi</Text>
-        </TouchableOpacity>
+        <View style={isTablet ? { maxWidth: TABLET_MAX_W, width: '100%', alignSelf: 'center', flexDirection: 'row' } : { flexDirection: 'row', flex: 1 }}>
+          <TouchableOpacity style={[styles.tabBtn, tab === 'menu' && styles.tabBtnActive]} onPress={() => setTab('menu')}>
+            <Text style={[styles.tabText, tab === 'menu' && styles.tabTextActive, isTablet && { fontSize: 15 }]}>Thực đơn</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.tabBtn, tab === 'orders' && styles.tabBtnActive]} onPress={() => setTab('orders')}>
+            <Text style={[styles.tabText, tab === 'orders' && styles.tabTextActive, isTablet && { fontSize: 15 }]}>Đơn của tôi</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {tab === 'menu' ? (
@@ -135,93 +141,138 @@ export default function FoodScreen() {
             ))}
           </ScrollView>
 
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-            {loading ? (
-              <View style={styles.center}><Text style={{ color: '#9CA3AF' }}>Đang tải thực đơn...</Text></View>
-            ) : displayItems.length === 0 ? (
-              <View style={styles.center}><Text style={{ color: '#9CA3AF' }}>Không có món trong danh mục này</Text></View>
-            ) : displayItems.map(item => {
-              const inCart = cart.find(c => c.id === item.id)
-              return (
-                <View key={item.id} style={styles.menuCard}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.menuName}>{item.name}</Text>
-                      {item.isVeg && <Text style={styles.vegBadge}>🌿</Text>}
+          <ScrollView contentContainerStyle={[
+            { padding: 16, paddingBottom: 100 },
+            isTablet && { alignItems: 'center' },
+          ]}>
+            <View style={isTablet ? { width: '100%', maxWidth: TABLET_MAX_W } : { width: '100%' }}>
+              {loading ? (
+                <View style={styles.center}><Text style={{ color: '#9CA3AF' }}>Đang tải thực đơn...</Text></View>
+              ) : displayItems.length === 0 ? (
+                <View style={styles.center}><Text style={{ color: '#9CA3AF' }}>Không có món trong danh mục này</Text></View>
+              ) : isTablet ? (
+                // Tablet: 2-column grid
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                  {displayItems.map(item => {
+                    const inCart = cart.find(c => c.id === item.id)
+                    return (
+                      <View key={item.id} style={[styles.menuCard, { width: (TABLET_MAX_W - 12) / 2 - 6 }]}>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[styles.menuName, { fontSize: 16 }]}>{item.name}</Text>
+                            {item.isVeg && <Text style={styles.vegBadge}>🌿</Text>}
+                          </View>
+                          {item.description ? <Text style={styles.menuDesc}>{item.description}</Text> : null}
+                          <Text style={[styles.menuPrice, { fontSize: 15 }]}>{formatPrice(item.price)}</Text>
+                        </View>
+                        <View style={styles.qtyControl}>
+                          {inCart ? (
+                            <>
+                              <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.id)}>
+                                <Ionicons name="remove" size={18} color="#1B4332" />
+                              </TouchableOpacity>
+                              <Text style={[styles.qtyText, { fontSize: 16 }]}>{inCart.qty}</Text>
+                              <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(item)}>
+                                <Ionicons name="add" size={18} color="#fff" />
+                              </TouchableOpacity>
+                            </>
+                          ) : (
+                            <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd, { width: 36, height: 36, borderRadius: 18 }]} onPress={() => addToCart(item)}>
+                              <Ionicons name="add" size={18} color="#fff" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    )
+                  })}
+                </View>
+              ) : displayItems.map(item => {
+                const inCart = cart.find(c => c.id === item.id)
+                return (
+                  <View key={item.id} style={styles.menuCard}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.menuName}>{item.name}</Text>
+                        {item.isVeg && <Text style={styles.vegBadge}>🌿</Text>}
+                      </View>
+                      {item.description ? <Text style={styles.menuDesc}>{item.description}</Text> : null}
+                      <Text style={styles.menuPrice}>{formatPrice(item.price)}</Text>
                     </View>
-                    {item.description ? <Text style={styles.menuDesc}>{item.description}</Text> : null}
-                    <Text style={styles.menuPrice}>{formatPrice(item.price)}</Text>
-                  </View>
-                  <View style={styles.qtyControl}>
-                    {inCart ? (
-                      <>
-                        <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.id)}>
-                          <Ionicons name="remove" size={16} color="#1B4332" />
-                        </TouchableOpacity>
-                        <Text style={styles.qtyText}>{inCart.qty}</Text>
+                    <View style={styles.qtyControl}>
+                      {inCart ? (
+                        <>
+                          <TouchableOpacity style={styles.qtyBtn} onPress={() => removeFromCart(item.id)}>
+                            <Ionicons name="remove" size={16} color="#1B4332" />
+                          </TouchableOpacity>
+                          <Text style={styles.qtyText}>{inCart.qty}</Text>
+                          <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(item)}>
+                            <Ionicons name="add" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </>
+                      ) : (
                         <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(item)}>
                           <Ionicons name="add" size={16} color="#fff" />
                         </TouchableOpacity>
-                      </>
-                    ) : (
-                      <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={() => addToCart(item)}>
-                        <Ionicons name="add" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    )}
+                      )}
+                    </View>
                   </View>
-                </View>
-              )
-            })}
+                )
+              })}
+            </View>
           </ScrollView>
 
           {/* Cart FAB */}
           {cartCount > 0 && (
-            <TouchableOpacity style={styles.cartFab} onPress={() => setShowCart(true)} activeOpacity={0.85}>
-              <LinearGradient colors={['#1B4332', '#2D6A4F']} style={styles.cartFabGrad}>
-                <Ionicons name="cart" size={20} color="#fff" />
-                <Text style={styles.cartFabText}>{cartCount} món · {formatPrice(cartTotal)}</Text>
-                <Text style={styles.cartFabCta}>Xem giỏ →</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={[styles.cartFabWrap, isTablet && { paddingHorizontal: (width - TABLET_MAX_W) / 2 }]}>
+              <TouchableOpacity style={styles.cartFab} onPress={() => setShowCart(true)} activeOpacity={0.85}>
+                <LinearGradient colors={['#1B4332', '#2D6A4F']} style={styles.cartFabGrad}>
+                  <Ionicons name="cart" size={isTablet ? 24 : 20} color="#fff" />
+                  <Text style={[styles.cartFabText, isTablet && { fontSize: 16 }]}>{cartCount} món · {formatPrice(cartTotal)}</Text>
+                  <Text style={[styles.cartFabCta, isTablet && { fontSize: 15 }]}>Xem giỏ →</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           )}
         </>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          {orders.length === 0 ? (
-            <View style={styles.center}>
-              <Text style={{ fontSize: 40, marginBottom: 12 }}>🍽️</Text>
-              <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>Chưa có đơn đặt món nào</Text>
-            </View>
-          ) : orders.map(order => {
-            const statusInfo = ORDER_STATUS[order.status] ?? { label: order.status, color: '#9CA3AF' }
-            return (
-              <View key={order.id} style={styles.orderCard}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleString('vi-VN')}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
-                    <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-                  </View>
-                </View>
-                {order.items.map((item, i) => (
-                  <View key={i} style={{ flexDirection: 'row', marginBottom: 4 }}>
-                    <Text style={styles.orderItem}>×{item.quantity} {item.menuItem.name}</Text>
-                    <Text style={styles.orderItemPrice}>{formatPrice(item.unitPrice * item.quantity)}</Text>
-                  </View>
-                ))}
-                <View style={styles.orderTotal}>
-                  <Text style={styles.orderTotalLabel}>Tổng</Text>
-                  <Text style={styles.orderTotalValue}>{formatPrice(order.totalAmount)}</Text>
-                </View>
+        <ScrollView contentContainerStyle={[{ padding: 16 }, isTablet && { alignItems: 'center' }]}>
+          <View style={isTablet ? { width: '100%', maxWidth: TABLET_MAX_W } : { width: '100%' }}>
+            {orders.length === 0 ? (
+              <View style={styles.center}>
+                <Text style={{ fontSize: 40, marginBottom: 12 }}>🍽️</Text>
+                <Text style={{ color: '#9CA3AF', textAlign: 'center' }}>Chưa có đơn đặt món nào</Text>
               </View>
-            )
-          })}
+            ) : orders.map(order => {
+              const statusInfo = ORDER_STATUS[order.status] ?? { label: order.status, color: '#9CA3AF' }
+              return (
+                <View key={order.id} style={styles.orderCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleString('vi-VN')}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
+                      <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+                    </View>
+                  </View>
+                  {order.items.map((item, i) => (
+                    <View key={i} style={{ flexDirection: 'row', marginBottom: 4 }}>
+                      <Text style={styles.orderItem}>×{item.quantity} {item.menuItem.name}</Text>
+                      <Text style={styles.orderItemPrice}>{formatPrice(item.unitPrice * item.quantity)}</Text>
+                    </View>
+                  ))}
+                  <View style={styles.orderTotal}>
+                    <Text style={styles.orderTotalLabel}>Tổng</Text>
+                    <Text style={styles.orderTotalValue}>{formatPrice(order.totalAmount)}</Text>
+                  </View>
+                </View>
+              )
+            })}
+          </View>
         </ScrollView>
       )}
 
       {/* Cart Modal */}
       <Modal visible={showCart} animationType="slide" transparent onRequestClose={() => setShowCart(false)}>
         <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, isTablet && { maxWidth: 560, width: '90%', alignSelf: 'center', borderRadius: 24 }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Giỏ hàng ({cartCount} món)</Text>
               <TouchableOpacity onPress={() => setShowCart(false)}>
@@ -297,7 +348,8 @@ const styles = StyleSheet.create({
   qtyBtn: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: '#1B4332', alignItems: 'center', justifyContent: 'center' },
   qtyBtnAdd: { backgroundColor: '#1B4332', borderColor: '#1B4332' },
   qtyText: { fontSize: 15, fontWeight: '700', color: '#1A1A1A', minWidth: 20, textAlign: 'center' },
-  cartFab: { position: 'absolute', bottom: 20, left: 16, right: 16, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  cartFabWrap: { position: 'absolute', bottom: 20, left: 16, right: 16 },
+  cartFab: { borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
   cartFabGrad: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 10 },
   cartFabText: { flex: 1, color: '#fff', fontWeight: '700', fontSize: 14 },
   cartFabCta: { color: '#C9A24B', fontWeight: '700', fontSize: 13 },
