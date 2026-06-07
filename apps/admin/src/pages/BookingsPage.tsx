@@ -68,6 +68,7 @@ export function BookingsPage() {
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
   const [detail, setDetail] = useState<Booking | null>(null)
+  const [checkoutTarget, setCheckoutTarget] = useState<Booking | null>(null)
   const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
 
@@ -233,7 +234,7 @@ export function BookingsPage() {
                           {nextStatus && (
                             <button
                               disabled={updating === b.id}
-                              onClick={() => handleStatusUpdate(b, nextStatus)}
+                              onClick={() => nextStatus === 'COMPLETED' ? setCheckoutTarget(b) : handleStatusUpdate(b, nextStatus)}
                               className="text-xs px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
                             >
                               {updating === b.id ? '...' : STATUS_META[nextStatus]?.label}
@@ -324,6 +325,67 @@ export function BookingsPage() {
                 </div>
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Checkout confirmation modal */}
+      {checkoutTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setCheckoutTarget(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="bg-slate-800 px-6 py-5 text-white rounded-t-2xl">
+              <p className="text-slate-400 text-xs mb-1">Xác nhận Check-out</p>
+              <p className="font-mono text-lg font-bold">{checkoutTarget.code}</p>
+            </div>
+            <div className="p-6 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Khách</p>
+                  <p className="font-semibold text-slate-700">{checkoutTarget.user.name}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Phòng</p>
+                  <p className="font-semibold text-slate-700">{checkoutTarget.room?.number ?? '—'}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Check-in</p>
+                  <p className="font-semibold text-slate-700">{formatDate(checkoutTarget.checkIn)}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Check-out</p>
+                  <p className="font-semibold text-slate-700">{formatDate(checkoutTarget.checkOut)}</p>
+                </div>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-emerald-700 mb-2">Tổng tiền phòng</p>
+                <p className="text-xl font-bold text-emerald-800">{formatPrice(checkoutTarget.totalAmount)}</p>
+                <p className="text-xs text-emerald-600 mt-1">+ Tiêu dùng tại resort (F&B, dịch vụ) — xem tab Hóa đơn trên app khách</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 space-y-1">
+                <p>✅ Phòng <strong>{checkoutTarget.room?.number}</strong> sẽ chuyển sang "Cần dọn"</p>
+                <p>✅ Tạo task housekeeping CHECKOUT tự động</p>
+                <p>✅ Digital key bị thu hồi ngay lập tức</p>
+                <p>✅ Gửi email mời đánh giá cho khách</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setCheckoutTarget(null)}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-colors text-sm"
+                >
+                  Hủy
+                </button>
+                <button
+                  disabled={updating === checkoutTarget.id}
+                  onClick={async () => {
+                    await handleStatusUpdate(checkoutTarget, 'COMPLETED')
+                    setCheckoutTarget(null)
+                  }}
+                  className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors text-sm disabled:opacity-50"
+                >
+                  {updating === checkoutTarget.id ? 'Đang xử lý...' : 'Xác nhận Check-out'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

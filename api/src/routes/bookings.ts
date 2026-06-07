@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { prisma } from '@tram-huong/database'
 import { generateBookingCode } from '@tram-huong/shared/utils'
-import { sendBookingConfirmation, sendAdminNotification } from '../lib/email.js'
+import { sendBookingConfirmation, sendAdminNotification, sendReviewInvite } from '../lib/email.js'
 import { verify } from 'hono/jwt'
 
 const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
@@ -258,10 +258,63 @@ bookingsRouter.patch('/:id/status', async (c) => {
 
   const id = c.req.param('id')
   const body = await c.req.json<{ status: string }>()
+
   const booking = await prisma.booking.update({
     where: { id },
     data: { status: body.status },
+    include: { room: { include: { roomType: true } }, user: true, digitalKey: true },
   })
+
+  // Side effects khi checkout (COMPLETED)
+  if (body.status === 'COMPLETED') {
+    const ops: Promise<unknown>[] = []
+
+    if (booking.roomId) {
+      // Phòng về trạng thái trống
+      ops.push(prisma.room.update({ where: { id: booking.roomId }, data: { status: 'AVAILABLE' } }))
+      // Tạo task dọn phòng checkout ưu tiên cao
+      ops.push(prisma.housekeepingTask.create({
+        data: {
+          roomId: booking.roomId,
+          type: 'CHECKOUT',
+          priority: 'HIGH',
+          status: 'PENDING',
+          scheduledFor: new Date(),
+          notes: `Checkout booking ${booking.code}`,
+        },
+      }))
+    }
+
+    // Thu hồi digital key
+    if (booking.digitalKey) {
+      ops.push(prisma.digitalKey.update({
+        where: { id: booking.digitalKey.id },
+        data: { revokedAt: new Date() },
+      }))
+    }
+
+    await Promise.all(ops)
+
+    // Gửi email mời review (non-blocking)
+    if (booking.user.email) {
+      const nights = Math.ceil(
+        (booking.checkOut.getTime() - booking.checkIn.getTime()) / (1000 * 60 * 60 * 24)
+      )
+      sendReviewInvite({
+        guestName: booking.user.name,
+        guestEmail: booking.user.email,
+        bookingCode: booking.code,
+        roomName: (booking.room as any)?.roomType?.name ?? 'phòng',
+        nights,
+      }).catch(() => {})
+    }
+  }
+
+  // Side effects khi check-in (CHECKED_IN)
+  if (body.status === 'CHECKED_IN' && booking.roomId) {
+    await prisma.room.update({ where: { id: booking.roomId }, data: { status: 'OCCUPIED' } }).catch(() => {})
+  }
+
   return c.json({ data: booking })
 })
 

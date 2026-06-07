@@ -5,6 +5,7 @@ import { ErrorBoundary } from '../ErrorBoundary'
 const NAV_ALL = [
   { to: '/dashboard', label: 'Tổng quan', icon: '📊' },
   { to: '/bookings', label: 'Đặt phòng', icon: '📅' },
+  { to: '/room-rack', label: 'Room Rack', icon: '🏨' },
   { to: '/rooms', label: 'Phòng', icon: '🛏' },
   { to: '/housekeeping', label: 'Housekeeping', icon: '🧹' },
   { to: '/maintenance', label: 'Bảo trì', icon: '🔧' },
@@ -48,7 +49,7 @@ export function AdminLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 min-h-0 p-3 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

@@ -96,11 +96,12 @@ model Booking {
   packageType    String?
   status         String  @default("PENDING") // PENDING | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED
 
-  payment    Payment?
-  activities ActivityBooking[]
-  digitalKey DigitalKey?
-  foodOrders FoodOrder[]
-  review     BookingReview?
+  payment         Payment?
+  activities      ActivityBooking[]
+  digitalKey      DigitalKey?
+  foodOrders      FoodOrder[]
+  review          BookingReview?
+  serviceRequests ServiceRequest[]
 
   notes String?
 
@@ -455,6 +456,20 @@ model TreeInfo {
   createdAt   DateTime @default(now())
 
   @@map("tree_info")
+}
+
+// Yêu cầu dịch vụ từ AI Concierge (dọn phòng, spa, xe, v.v.)
+model ServiceRequest {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  type      String   // HOUSEKEEPING | SPA | TRANSPORT | ROOM_SERVICE | OTHER
+  details   String?  // mô tả thêm từ khách
+  status    String   @default("PENDING") // PENDING | IN_PROGRESS | DONE | CANCELLED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_requests")
 }
 
 // Rating sau check-out (mobile)

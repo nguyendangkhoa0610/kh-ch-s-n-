@@ -243,6 +243,27 @@ GIAO THÔNG:
 
 KHẨN CẤP: Hướng dẫn khách bấm nút SOS màu đỏ trong app để được hỗ trợ ngay lập tức.`
 
+// Detect intent từ tin nhắn khách → trả về loại action nếu có
+function detectIntent(msg: string): { type: string; details: string } | null {
+  const m = msg.toLowerCase()
+  if (/dọn phòng|thay (khăn|ga|chăn|gối)|vệ sinh phòng|housekeeping/.test(m))
+    return { type: 'HOUSEKEEPING', details: msg }
+  if (/spa|massage|facial|couple spa|trị liệu/.test(m))
+    return { type: 'SPA', details: msg }
+  if (/đặt xe|xe đưa đón|sân bay|xe về|taxi|transfer/.test(m))
+    return { type: 'TRANSPORT', details: msg }
+  if (/room service|đặt món|gọi đồ ăn|mang (đồ|thức) ăn|order (đồ|món)/.test(m))
+    return { type: 'ROOM_SERVICE', details: msg }
+  return null
+}
+
+const INTENT_CONFIRM: Record<string, string> = {
+  HOUSEKEEPING: 'Tôi đã gửi yêu cầu dọn phòng đến đội housekeeping. Nhân viên sẽ đến trong vòng 15–20 phút!',
+  SPA: 'Tôi đã ghi nhận yêu cầu đặt spa của bạn. Nhân viên spa sẽ liên hệ để xác nhận giờ trong ít phút!',
+  TRANSPORT: 'Yêu cầu xe đã được gửi đến lễ tân. Lễ tân sẽ xác nhận thông tin chuyến đi sớm!',
+  ROOM_SERVICE: 'Yêu cầu room service đã được ghi nhận! Bạn cũng có thể đặt món trực tiếp qua tab 🍽️ để chọn món cụ thể.',
+}
+
 mobileRouter.post('/concierge', guestAuth, async (c) => {
   const body = await c.req.json<{
     message: string
@@ -250,6 +271,43 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
   }>()
 
   if (!body.message?.trim()) return c.json({ error: 'Cần có tin nhắn' }, 400)
+
+  const guest = c.get('guest') as GuestPayload
+
+  // Detect intent trước — nếu match thì tạo ServiceRequest ngay, không cần gọi AI
+  const intent = detectIntent(body.message)
+  if (intent) {
+    await prisma.serviceRequest.create({
+      data: {
+        bookingId: guest.bookingId,
+        type: intent.type,
+        details: intent.details,
+        status: 'PENDING',
+      },
+    }).catch(() => {})
+
+    // Nếu housekeeping → tạo luôn HousekeepingTask nếu có phòng
+    if (intent.type === 'HOUSEKEEPING') {
+      const bk = await prisma.booking.findUnique({
+        where: { id: guest.bookingId },
+        select: { roomId: true },
+      })
+      if (bk?.roomId) {
+        await prisma.housekeepingTask.create({
+          data: {
+            roomId: bk.roomId,
+            type: 'STAYOVER',
+            priority: 'NORMAL',
+            status: 'PENDING',
+            scheduledFor: new Date(),
+            notes: `Yêu cầu từ AI Concierge: ${body.message}`,
+          },
+        }).catch(() => {})
+      }
+    }
+
+    return c.json({ data: { reply: INTENT_CONFIRM[intent.type], action: intent.type } })
+  }
 
   const apiKey = process.env['ANTHROPIC_API_KEY']
   if (!apiKey) {
@@ -259,7 +317,6 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
   }
 
   // Lấy thông tin booking của khách để cá nhân hóa
-  const guest = c.get('guest') as GuestPayload
   const booking = await prisma.booking.findUnique({
     where: { id: guest.bookingId },
     include: {
@@ -290,7 +347,7 @@ Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
       {
         type: 'text',
         text: CONCIERGE_SYSTEM,
-        cache_control: { type: 'ephemeral' }, // cache system prompt tĩnh
+        cache_control: { type: 'ephemeral' },
       },
       ...(guestContext ? [{ type: 'text' as const, text: guestContext }] : []),
     ],
@@ -314,6 +371,10 @@ mobileRouter.get('/bill', guestAuth, async (c) => {
       room: { include: { roomType: true } },
       activities: { include: { schedule: { include: { activity: true } } } },
       payment: true,
+      foodOrders: {
+        where: { status: { not: 'CANCELLED' } },
+        include: { items: { include: { menuItem: true } } },
+      },
     },
   })
 
@@ -342,6 +403,15 @@ mobileRouter.get('/bill', guestAuth, async (c) => {
       amount: ab.schedule.activity.price * ab.guests,
       date: ab.schedule.startTime,
     })),
+    ...(booking as any).foodOrders.flatMap((order: any) =>
+      order.items.map((item: any) => ({
+        id: `food-${item.id}`,
+        category: 'restaurant',
+        description: `${item.menuItem.name} × ${item.quantity}`,
+        amount: item.unitPrice * item.quantity,
+        date: order.createdAt,
+      }))
+    ),
   ]
 
   const total = items.reduce((s, i) => s + i.amount, 0)

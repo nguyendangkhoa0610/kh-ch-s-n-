@@ -12,6 +12,59 @@ roomsRouter.get('/', async (c) => {
   return c.json({ data: rooms })
 })
 
+// GET /api/rooms/rack — dữ liệu đầy đủ cho Room Rack (lễ tân)
+roomsRouter.get('/rack', async (c) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const [rooms, activeBookings, pendingHousekeeping] = await Promise.all([
+    prisma.room.findMany({
+      include: { roomType: { select: { name: true, slug: true } } },
+      orderBy: { number: 'asc' },
+    }),
+    prisma.booking.findMany({
+      where: { status: { in: ['CONFIRMED', 'CHECKED_IN'] } },
+      select: {
+        id: true, code: true, status: true,
+        checkIn: true, checkOut: true, guests: true,
+        roomId: true,
+        user: { select: { name: true, phone: true } },
+      },
+    }),
+    prisma.housekeepingTask.findMany({
+      where: { status: { in: ['PENDING', 'IN_PROGRESS'] } },
+      select: { roomId: true, type: true, status: true, priority: true },
+    }),
+  ])
+
+  const bookingByRoom = new Map(activeBookings.map(b => [b.roomId, b]))
+  const hkByRoom = new Map(pendingHousekeeping.map(t => [t.roomId, t]))
+
+  const checkinsToday = activeBookings.filter(b => {
+    const ci = new Date(b.checkIn)
+    return b.status === 'CONFIRMED' && ci >= today && ci < tomorrow
+  }).length
+
+  const checkoutsToday = activeBookings.filter(b => {
+    const co = new Date(b.checkOut)
+    return b.status === 'CHECKED_IN' && co >= today && co < tomorrow
+  }).length
+
+  const rack = rooms.map(room => ({
+    id: room.id,
+    number: room.number,
+    floor: room.floor,
+    status: room.status,
+    roomType: room.roomType,
+    booking: bookingByRoom.get(room.id) ?? null,
+    housekeeping: hkByRoom.get(room.id) ?? null,
+  }))
+
+  return c.json({ data: { rooms: rack, stats: { checkinsToday, checkoutsToday } } })
+})
+
 // GET /api/rooms/types - loại phòng
 roomsRouter.get('/types', async (c) => {
   const roomTypes = await prisma.roomType.findMany({

@@ -1,6 +1,6 @@
 import { useAuth } from './auth'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 function headers() {
   return useAuth.getState().getHeaders()
@@ -158,6 +158,7 @@ export type GuestProfile = {
 export const api = {
   getRooms: () => get<Room[]>('/rooms'),
   getRoomTypes: () => get<RoomType[]>('/rooms/types'),
+  getRoomRack: () => get<{ rooms: unknown[]; stats: { checkinsToday: number; checkoutsToday: number } }>('/rooms/rack'),
   updateRoomStatus: (id: string, status: string) =>
     patch<Room>(`/rooms/${id}/status`, { status }),
   updateRoomType: (id: string, data: Partial<Omit<RoomType, 'id' | 'slug'> & { amenities: string[]; images: string[] }>) =>

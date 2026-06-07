@@ -20,6 +20,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { MenuPage } from './pages/MenuPage'
 import { VouchersPage } from './pages/VouchersPage'
 import { PricingPage } from './pages/PricingPage'
+import { RoomRackPage } from './pages/RoomRackPage'
 import { StaffHomePage } from './pages/staff/StaffHomePage'
 import { StaffCheckInPage } from './pages/staff/StaffCheckInPage'
 import { StaffAlertsPage } from './pages/staff/StaffAlertsPage'
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/rooms" element={<RoomsPage />} />
+          <Route path="/room-rack" element={<RoomRackPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/staff" element={<StaffPage />} />
