@@ -10,6 +10,72 @@ type Env = { Variables: { guest: GuestPayload } }
 
 export const mobileRouter = new Hono<Env>()
 
+// ── Weather helper ────────────────────────────────────────────────────────────
+
+type WeatherData = {
+  temp: number
+  code: number
+  wind: number
+  humidity: number
+  description: string
+  emoji: string
+  isGoodForOutdoor: boolean
+  suggestions: string[]
+}
+
+function decodeWeatherCode(code: number): { description: string; emoji: string; isGoodForOutdoor: boolean } {
+  if (code === 0) return { description: 'trời quang đãng, nắng đẹp', emoji: '☀️', isGoodForOutdoor: true }
+  if (code <= 3) return { description: 'có mây nhẹ', emoji: '⛅', isGoodForOutdoor: true }
+  if (code <= 48) return { description: 'sương mù', emoji: '🌫️', isGoodForOutdoor: true }
+  if (code <= 55) return { description: 'mưa phùn nhẹ', emoji: '🌦️', isGoodForOutdoor: false }
+  if (code <= 65) return { description: 'đang có mưa', emoji: '🌧️', isGoodForOutdoor: false }
+  if (code <= 82) return { description: 'mưa rào', emoji: '🌧️', isGoodForOutdoor: false }
+  if (code <= 99) return { description: 'có giông bão', emoji: '⛈️', isGoodForOutdoor: false }
+  return { description: 'thời tiết thay đổi', emoji: '🌤️', isGoodForOutdoor: true }
+}
+
+let weatherCache: { data: WeatherData; fetchedAt: number } | null = null
+
+async function fetchWeather(): Promise<WeatherData | null> {
+  // Cache 10 phút — không cần gọi API mỗi tin nhắn
+  if (weatherCache && Date.now() - weatherCache.fetchedAt < 10 * 60 * 1000) {
+    return weatherCache.data
+  }
+  try {
+    const res = await fetch(
+      'https://api.open-meteo.com/v1/forecast?latitude=13.85&longitude=109.13' +
+      '&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m' +
+      '&timezone=Asia%2FHo_Chi_Minh&forecast_days=1',
+      { signal: AbortSignal.timeout(5000) }
+    )
+    if (!res.ok) return null
+    const raw = await res.json() as {
+      current: { temperature_2m: number; weather_code: number; wind_speed_10m: number; relative_humidity_2m: number }
+    }
+    const { description, emoji, isGoodForOutdoor } = decodeWeatherCode(raw.current.weather_code)
+    const temp = Math.round(raw.current.temperature_2m)
+
+    const suggestions = isGoodForOutdoor
+      ? ['snorkeling & SUP kayak tại bãi biển riêng', 'trekking rừng trầm hương có hướng dẫn', 'yoga bình minh 06:00', 'đánh cá cùng ngư dân 17:00']
+      : ['massage trầm hương tại Spa (đặt qua app)', 'thưởng thức ẩm thực tại Nhà hàng Trầm', 'thư giãn tại thư viện resort', 'sauna & steam room miễn phí']
+
+    const data: WeatherData = {
+      temp,
+      code: raw.current.weather_code,
+      wind: Math.round(raw.current.wind_speed_10m),
+      humidity: raw.current.relative_humidity_2m,
+      description,
+      emoji,
+      isGoodForOutdoor,
+      suggestions,
+    }
+    weatherCache = { data, fetchedAt: Date.now() }
+    return data
+  } catch {
+    return null
+  }
+}
+
 const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
 
 // ── Auth middleware ──────────────────────────────────────────────────────────
@@ -316,8 +382,8 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
     })
   }
 
-  // Lấy booking + knowledge base song song
-  const [booking, kbEntries] = await Promise.all([
+  // Lấy booking + knowledge base + weather song song
+  const [booking, kbEntries, weather] = await Promise.all([
     prisma.booking.findUnique({
       where: { id: guest.bookingId },
       include: {
@@ -325,13 +391,13 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
         room: { include: { roomType: { select: { name: true, amenities: true } } } },
       },
     }),
-    // RAG: lấy tất cả KB active, filter theo relevance đơn giản
     prisma.knowledgeEntry.findMany({
       where: { isActive: true },
       select: { title: true, content: true, category: true },
       orderBy: { updatedAt: 'desc' },
       take: 50,
     }),
+    fetchWeather(),
   ])
 
   const guestContext = booking ? `
@@ -341,6 +407,16 @@ THÔNG TIN KHÁCH ĐANG CHAT:
 • Check-in: ${booking.checkIn.toLocaleDateString('vi-VN')} | Check-out: ${booking.checkOut.toLocaleDateString('vi-VN')}
 • Số khách: ${booking.guests} người
 Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
+
+  const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', weekday: 'long' })
+  const weatherContext = weather ? `
+THỜI TIẾT THỰC TẾ TẠI RESORT (cập nhật lúc ${now}):
+• Nhiệt độ: ${weather.temp}°C ${weather.emoji}
+• Tình trạng: ${weather.description}
+• Gió: ${weather.wind} km/h | Độ ẩm: ${weather.humidity}%
+• Thích hợp cho hoạt động ngoài trời: ${weather.isGoodForOutdoor ? 'CÓ' : 'KHÔNG'}
+• Gợi ý hoạt động phù hợp hôm nay: ${weather.suggestions.join(', ')}
+Khi khách hỏi về thời tiết hoặc nên làm gì, hãy dùng thông tin thực tế này.` : ''
 
   // RAG: tìm top 3 KB entries liên quan đến câu hỏi
   const msgLower = body.message.toLowerCase()
@@ -374,9 +450,9 @@ Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
         text: CONCIERGE_SYSTEM,
         cache_control: { type: 'ephemeral' },
       },
-      ...(guestContext || kbContext ? [{
+      ...(guestContext || weatherContext || kbContext ? [{
         type: 'text' as const,
-        text: guestContext + kbContext,
+        text: guestContext + weatherContext + kbContext,
       }] : []),
     ],
     messages,
