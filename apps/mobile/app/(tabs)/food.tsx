@@ -52,12 +52,22 @@ export default function FoodScreen() {
   const [placing, setPlacing] = useState(false)
   const [catFilter, setCatFilter] = useState('ALL')
 
+  const loadOrders = useCallback(() => {
+    if (!token) return
+    api.get<Order[]>('/menu/orders/my', token).then(r => setOrders(r.data)).catch(() => {})
+  }, [token])
+
   useEffect(() => {
     api.get<MenuItem[]>('/menu').then(r => { setMenuItems(r.data); setLoading(false) })
-    if (token) {
-      api.get<Order[]>('/menu/orders/my', token).then(r => setOrders(r.data)).catch(() => {})
-    }
+    loadOrders()
   }, [token])
+
+  // Poll orders every 30s when "Đơn của tôi" tab is active
+  useEffect(() => {
+    if (tab !== 'orders') return
+    const id = setInterval(loadOrders, 30_000)
+    return () => clearInterval(id)
+  }, [tab, loadOrders])
 
   const addToCart = (item: MenuItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)

@@ -4,6 +4,7 @@ import { prisma } from '@tram-huong/database'
 import Anthropic from '@anthropic-ai/sdk'
 import QRCode from 'qrcode'
 import crypto from 'crypto'
+import { sendExpoPush } from './notifications.js'
 
 type GuestPayload = { sub: string; bookingId: string; role: string; exp: number }
 type Env = { Variables: { guest: GuestPayload } }
@@ -343,6 +344,12 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
   // Detect intent trước — nếu match thì tạo ServiceRequest ngay, không cần gọi AI
   const intent = detectIntent(body.message)
   if (intent) {
+    // Lấy booking + phòng để build context cho push và tạo HK task
+    const bk = await prisma.booking.findUnique({
+      where: { id: guest.bookingId },
+      select: { roomId: true, room: { select: { number: true } } },
+    })
+
     await prisma.serviceRequest.create({
       data: {
         bookingId: guest.bookingId,
@@ -352,25 +359,41 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
       },
     }).catch(() => {})
 
-    // Nếu housekeeping → tạo luôn HousekeepingTask nếu có phòng
-    if (intent.type === 'HOUSEKEEPING') {
-      const bk = await prisma.booking.findUnique({
-        where: { id: guest.bookingId },
-        select: { roomId: true },
-      })
-      if (bk?.roomId) {
-        await prisma.housekeepingTask.create({
-          data: {
-            roomId: bk.roomId,
-            type: 'STAYOVER',
-            priority: 'NORMAL',
-            status: 'PENDING',
-            scheduledFor: new Date(),
-            notes: `Yêu cầu từ AI Concierge: ${body.message}`,
-          },
-        }).catch(() => {})
-      }
+    if (intent.type === 'HOUSEKEEPING' && bk?.roomId) {
+      await prisma.housekeepingTask.create({
+        data: {
+          roomId: bk.roomId,
+          type: 'STAYOVER',
+          priority: 'NORMAL',
+          status: 'PENDING',
+          scheduledFor: new Date(),
+          notes: `Yêu cầu từ AI Concierge: ${body.message}`,
+        },
+      }).catch(() => {})
     }
+
+    // Push notification đến tất cả STAFF/MANAGER (fire and forget)
+    const TYPE_VN: Record<string, string> = {
+      HOUSEKEEPING: 'Dọn phòng', SPA: 'Spa',
+      TRANSPORT: 'Xe đưa đón', ROOM_SERVICE: 'Room Service',
+    }
+    const roomNum = bk?.room?.number
+    const staffUsers = await prisma.user.findMany({
+      where: { role: { in: ['STAFF', 'MANAGER'] }, pushToken: { not: null } },
+      select: { pushToken: true },
+    })
+    const pushMsgs = staffUsers
+      .filter(u => u.pushToken?.startsWith('ExponentPushToken['))
+      .map(u => ({
+        to: u.pushToken!,
+        title: `🔔 Yêu cầu mới — ${TYPE_VN[intent.type] ?? intent.type}`,
+        body: roomNum
+          ? `Phòng ${roomNum}: ${intent.details.slice(0, 80)}`
+          : intent.details.slice(0, 80),
+        sound: 'default' as const,
+        data: { type: 'SERVICE_REQUEST', requestType: intent.type },
+      }))
+    sendExpoPush(pushMsgs).catch(() => {})
 
     return c.json({ data: { reply: INTENT_CONFIRM[intent.type], action: intent.type } })
   }
@@ -654,6 +677,57 @@ mobileRouter.post('/review', guestAuth, async (c) => {
     },
   })
   return c.json({ data: review }, 201)
+})
+
+// ── Eco Rewards & Redemption ──────────────────────────────────────────────────
+
+// GET /api/mobile/eco/rewards — danh sách phần thưởng có thể đổi
+mobileRouter.get('/eco/rewards', guestAuth, async (c) => {
+  const rewards = await prisma.ecoReward.findMany({
+    where: { isActive: true },
+    orderBy: { pointCost: 'asc' },
+  })
+  return c.json({ data: rewards })
+})
+
+// POST /api/mobile/eco/redeem — đổi điểm lấy reward
+mobileRouter.post('/eco/redeem', guestAuth, async (c) => {
+  const guest = c.get('guest')
+  const body = await c.req.json() as { rewardId: string }
+  if (!body.rewardId) return c.json({ error: 'rewardId required' }, 400)
+
+  const [reward, user] = await Promise.all([
+    prisma.ecoReward.findUnique({ where: { id: body.rewardId } }),
+    prisma.user.findUnique({ where: { id: guest.sub }, select: { id: true, ecoPoints: true } }),
+  ])
+  if (!reward || !reward.isActive) return c.json({ error: 'Phần thưởng không tồn tại' }, 404)
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  if (user.ecoPoints < reward.pointCost) return c.json({ error: 'Không đủ điểm eco' }, 400)
+  if (reward.stock === 0) return c.json({ error: 'Phần thưởng đã hết' }, 400)
+
+  const code = `ECO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+
+  const [redemption] = await prisma.$transaction([
+    prisma.ecoRedemption.create({
+      data: { userId: guest.sub, rewardId: reward.id, pointsUsed: reward.pointCost, code, expiresAt },
+    }),
+    prisma.user.update({ where: { id: guest.sub }, data: { ecoPoints: { decrement: reward.pointCost } } }),
+    ...(reward.stock > 0 ? [prisma.ecoReward.update({ where: { id: reward.id }, data: { stock: { decrement: 1 } } })] : []),
+  ])
+  return c.json({ data: { ...redemption, reward } })
+})
+
+// GET /api/mobile/eco/redemptions — lịch sử đổi điểm của user
+mobileRouter.get('/eco/redemptions', guestAuth, async (c) => {
+  const guest = c.get('guest')
+  const redemptions = await prisma.ecoRedemption.findMany({
+    where: { userId: guest.sub },
+    include: { reward: { select: { title: true, type: true, value: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  return c.json({ data: redemptions })
 })
 
 // GET /api/mobile/eco/leaderboard — top khách xanh

@@ -18,7 +18,7 @@ function timeStr(iso: string) {
 
 export function StaffChatPage() {
   const { user, getHeaders } = useAuth()
-  const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+  const BASE = import.meta.env.VITE_API_URL ?? '/api'
   const [team, setTeam] = useState<Team>('all')
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')

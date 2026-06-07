@@ -83,15 +83,28 @@ export type Booking = {
   createdAt: string
   user: { id: string; name: string; email: string; phone: string }
   room: { number: string; roomType: { name: string } } | null
+  // Khai báo tạm trú
+  idNumber?: string | null
+  idType?: string | null
+  nationality?: string | null
+  dateOfBirth?: string | null
+  address?: string | null
 }
 
 export type RevenuePoint = { date: string; label: string; revenue: number; bookings: number }
+export type OccupancyPoint = { date: string; label: string; occupiedRooms: number; totalRooms: number; occupancyRate: number }
 export type Summary = {
   totalBookings: number
   totalRevenue: number
   roomsAvailable: number
   roomsOccupied: number
   roomsTotal: number
+  occupancyRate: number
+  adr: number
+  revpar: number
+  todayCheckins: number
+  todayCheckouts: number
+  pendingBookings: number
   recentBookings: Booking[]
 }
 
@@ -155,6 +168,19 @@ export type GuestProfile = {
   stats: { totalBookings: number; completedBookings: number; cancelledBookings: number; totalSpend: number }
 }
 
+export type ServiceRequest = {
+  id: string
+  type: 'HOUSEKEEPING' | 'SPA' | 'TRANSPORT' | 'ROOM_SERVICE' | 'OTHER'
+  details: string | null
+  status: 'PENDING' | 'IN_PROGRESS' | 'DONE'
+  createdAt: string
+  booking: {
+    code: string
+    user: { name: string }
+    room: { number: string } | null
+  }
+}
+
 export const api = {
   // Generic methods — dùng cho các trang mới
   get: <T>(path: string) => get<T>(path),
@@ -179,6 +205,7 @@ export const api = {
     patch<Booking>(`/bookings/${id}/status`, { status }),
 
   getRevenueChart: (days = 7) => get<RevenuePoint[]>(`/reports/revenue?days=${days}`),
+  getOccupancyChart: (days = 30) => get<OccupancyPoint[]>(`/reports/occupancy?days=${days}`),
   getSummary: () => get<Summary>('/reports/summary'),
 
   // Activities
@@ -244,4 +271,10 @@ export const api = {
   // Push notifications
   sendNotification: (data: { roles?: string[]; userIds?: string[]; title: string; message: string }) =>
     post<{ sent: number }>('/notifications/send', data),
+
+  // Service requests
+  getServiceRequests: (status?: string) =>
+    get<ServiceRequest[]>(`/mobile/staff/service-requests${status ? `?status=${status}` : ''}`),
+  updateServiceRequest: (id: string, status: string) =>
+    patch<ServiceRequest>(`/mobile/staff/service-requests/${id}`, { status }),
 }

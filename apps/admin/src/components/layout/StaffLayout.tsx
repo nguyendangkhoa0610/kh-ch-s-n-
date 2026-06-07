@@ -26,7 +26,7 @@ export function StaffLayout() {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-0.5">
+        <nav className="flex-1 min-h-0 p-3 space-y-0.5 overflow-y-auto">
           {navItems.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end}
               className={({ isActive }) =>

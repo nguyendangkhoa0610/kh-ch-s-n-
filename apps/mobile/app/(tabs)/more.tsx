@@ -59,6 +59,105 @@ export default function MoreScreen() {
 
   const [showBoard, setShowBoard] = useState(false)
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
+
+  // Spa state
+  type SpaService = { id: string; name: string; duration: number; price: number; description: string }
+  type SpaMyBooking = { id: string; service: string; serviceName: string; date: string; timeSlot: string; guests: number; price: number; status: string }
+  const [showSpa, setShowSpa] = useState(false)
+  const [spaTab, setSpaTab] = useState<'book' | 'mine'>('book')
+  const [spaServices, setSpaServices] = useState<SpaService[]>([])
+  const [spaMyBookings, setSpaMyBookings] = useState<SpaMyBooking[]>([])
+  const [spaSelected, setSpaSelected] = useState<SpaService | null>(null)
+  const [spaDate, setSpaDate] = useState('')
+  const [spaSlots, setSpaSlots] = useState<string[]>([])
+  const [spaTimeSlot, setSpaTimeSlot] = useState('')
+  const [spaBooking, setSpaBooking] = useState(false)
+  const [spaSuccess, setSpaSuccess] = useState(false)
+
+  useEffect(() => {
+    if (!token) return
+    api.get<SpaService[]>('/spa/services', token)
+      .then(res => setSpaServices(res.data))
+      .catch(() => {})
+  }, [token])
+
+  const loadSpaMyBookings = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await api.get<SpaMyBooking[]>('/spa/my', token)
+      setSpaMyBookings(res.data)
+    } catch {}
+  }, [token])
+
+  useEffect(() => { if (showSpa && spaTab === 'mine') loadSpaMyBookings() }, [showSpa, spaTab, loadSpaMyBookings])
+
+  const loadSpaSlots = useCallback(async (serviceId: string, date: string) => {
+    if (!date || !serviceId) return
+    try {
+      const res = await api.get<{ available: string[] }>(`/spa/availability?date=${date}&service=${serviceId}`, token ?? undefined)
+      setSpaSlots(res.data.available)
+      setSpaTimeSlot('')
+    } catch {}
+  }, [token])
+
+  useEffect(() => {
+    if (spaSelected && spaDate) loadSpaSlots(spaSelected.id, spaDate)
+  }, [spaSelected, spaDate, loadSpaSlots])
+
+  const bookSpa = async () => {
+    if (!spaSelected || !spaDate || !spaTimeSlot) return
+    setSpaBooking(true)
+    try {
+      await api.post('/spa/book', { service: spaSelected.id, date: spaDate, timeSlot: spaTimeSlot }, token ?? undefined)
+      setSpaSuccess(true)
+      loadSpaMyBookings()
+      setSpaTab('mine')
+    } catch (e: any) {
+      Alert.alert('Lỗi', e.message ?? 'Không thể đặt lịch')
+    } finally { setSpaBooking(false) }
+  }
+  // Eco Rewards state
+  type EcoReward = { id: string; title: string; description: string | null; pointCost: number; type: string; value: number; stock: number }
+  type EcoRedemption = { id: string; code: string; status: string; pointsUsed: number; expiresAt: string; reward: { title: string; type: string; value: number } }
+  const [showRewards, setShowRewards] = useState(false)
+  const [rewardsTab, setRewardsTab] = useState<'list' | 'history'>('list')
+  const [ecoRewards, setEcoRewards] = useState<EcoReward[]>([])
+  const [ecoRedemptions, setEcoRedemptions] = useState<EcoRedemption[]>([])
+  const [redeeming, setRedeeming] = useState<string | null>(null)
+  const [redeemSuccess, setRedeemSuccess] = useState<{ code: string; title: string } | null>(null)
+
+  const loadRewards = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await api.get<EcoReward[]>('/mobile/eco/rewards', token)
+      setEcoRewards(res.data)
+    } catch {}
+  }, [token])
+
+  const loadRedemptions = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await api.get<EcoRedemption[]>('/mobile/eco/redemptions', token)
+      setEcoRedemptions(res.data)
+    } catch {}
+  }, [token])
+
+  useEffect(() => { if (showRewards) loadRewards() }, [showRewards, loadRewards])
+  useEffect(() => { if (showRewards && rewardsTab === 'history') loadRedemptions() }, [showRewards, rewardsTab, loadRedemptions])
+
+  const redeemReward = async (rewardId: string) => {
+    setRedeeming(rewardId)
+    try {
+      const res = await api.post<{ code: string; reward: { title: string } }>('/mobile/eco/redeem', { rewardId }, token ?? undefined)
+      setRedeemSuccess({ code: res.data.code, title: res.data.reward.title })
+      const updated = await api.get<{ ecoPoints: number; completedChallenges: string[] }>('/mobile/eco', token ?? undefined)
+      setEco(updated.data.ecoPoints, updated.data.completedChallenges)
+      loadRewards()
+    } catch (e: any) {
+      Alert.alert('Không thể đổi điểm', e.message ?? 'Vui lòng thử lại')
+    } finally { setRedeeming(null) }
+  }
+
   const [gallery, setGallery] = useState<string[]>([])
   const [uploadingGallery, setUploadingGallery] = useState(false)
   const [showReview, setShowReview] = useState(false)
@@ -193,14 +292,24 @@ export default function MoreScreen() {
             Cần thêm {nextLevel.min - ecoPoints} điểm để đạt "{nextLevel.name}"
           </Text>
         )}
-        <TouchableOpacity
-          style={styles.boardBtn}
-          onPress={() => { loadLeaderboard(); setShowBoard(true) }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="trophy" size={15} color="#C9A24B" />
-          <Text style={styles.boardBtnText}>Bảng xếp hạng khách xanh</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <TouchableOpacity
+            style={[styles.boardBtn, { flex: 1 }]}
+            onPress={() => { loadLeaderboard(); setShowBoard(true) }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trophy" size={15} color="#C9A24B" />
+            <Text style={styles.boardBtnText}>Bảng xếp hạng</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.boardBtn, { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)' }]}
+            onPress={() => { setShowRewards(true); setRewardsTab('list') }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="gift-outline" size={15} color="#fff" />
+            <Text style={[styles.boardBtnText, { color: '#fff' }]}>Đổi điểm</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* Eco Challenges */}
@@ -334,6 +443,135 @@ export default function MoreScreen() {
                 </ScrollView>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Spa & Wellness */}
+      <Text style={[styles.section, isTablet && styles.sectionT]}>💆 Spa & Wellness</Text>
+      <TouchableOpacity
+        style={styles.spaCard}
+        onPress={() => { setShowSpa(true); setSpaSuccess(false); setSpaSelected(null); setSpaDate(''); setSpaTimeSlot('') }}
+        activeOpacity={0.85}
+      >
+        <LinearGradient colors={['#065F46', '#047857']} style={styles.spaGrad}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.spaTitle}>Đặt lịch Spa & Massage</Text>
+            <Text style={styles.spaSub}>Massage Trầm Hương • Facial • Couple Spa • Sauna</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#6EE7B7" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Spa Modal */}
+      <Modal visible={showSpa} animationType="slide" transparent onRequestClose={() => setShowSpa(false)}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modalCard, { paddingBottom: 40, maxHeight: '90%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>💆 Đặt Spa</Text>
+              <TouchableOpacity onPress={() => setShowSpa(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            {/* Tab */}
+            <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: 10, padding: 3, marginBottom: 16 }}>
+              {(['book', 'mine'] as const).map(t => (
+                <TouchableOpacity key={t} style={{ flex: 1, paddingVertical: 7, borderRadius: 8, backgroundColor: spaTab === t ? '#fff' : 'transparent', alignItems: 'center' }}
+                  onPress={() => setSpaTab(t)}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: spaTab === t ? '#065F46' : '#6B7280' }}>
+                    {t === 'book' ? '🛎 Đặt lịch' : '📋 Đặt của tôi'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {spaTab === 'book' ? (
+                <>
+                  {spaSuccess && (
+                    <View style={{ backgroundColor: '#D1FAE5', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#065F46', textAlign: 'center' }}>
+                        ✅ Đặt lịch thành công! Nhân viên spa sẽ liên hệ xác nhận.
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 10 }}>Chọn dịch vụ</Text>
+                  {spaServices.map(svc => (
+                    <TouchableOpacity key={svc.id}
+                      onPress={() => { setSpaSelected(svc); setSpaSuccess(false) }}
+                      style={{ borderRadius: 12, borderWidth: 1.5, borderColor: spaSelected?.id === svc.id ? '#065F46' : '#E5E7EB', padding: 12, marginBottom: 8, backgroundColor: spaSelected?.id === svc.id ? '#F0FDF4' : '#fff' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A' }}>{svc.name}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#065F46' }}>
+                          {svc.price === 0 ? 'Miễn phí' : `${(svc.price / 1000).toFixed(0)}K`}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{svc.duration} phút · {svc.description}</Text>
+                    </TouchableOpacity>
+                  ))}
+
+                  {spaSelected && (
+                    <>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginTop: 14, marginBottom: 8 }}>Chọn ngày</Text>
+                      <TextInput
+                        value={spaDate}
+                        onChangeText={v => setSpaDate(v)}
+                        placeholder="YYYY-MM-DD (vd: 2026-06-10)"
+                        placeholderTextColor="#9CA3AF"
+                        style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, marginBottom: 12 }}
+                      />
+
+                      {spaDate && spaSlots.length > 0 && (
+                        <>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>Chọn giờ</Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                            {spaSlots.map(slot => (
+                              <TouchableOpacity key={slot}
+                                onPress={() => setSpaTimeSlot(slot)}
+                                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: spaTimeSlot === slot ? '#065F46' : '#E5E7EB', backgroundColor: spaTimeSlot === slot ? '#F0FDF4' : '#fff' }}>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: spaTimeSlot === slot ? '#065F46' : '#374151' }}>{slot}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </>
+                      )}
+                      {spaDate && spaSlots.length === 0 && (
+                        <Text style={{ fontSize: 13, color: '#EF4444', marginBottom: 12, textAlign: 'center' }}>Ngày này đã hết chỗ. Vui lòng chọn ngày khác.</Text>
+                      )}
+
+                      <TouchableOpacity
+                        onPress={bookSpa}
+                        disabled={!spaTimeSlot || spaBooking}
+                        style={{ backgroundColor: (!spaTimeSlot || spaBooking) ? '#E5E7EB' : '#065F46', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: (!spaTimeSlot || spaBooking) ? '#9CA3AF' : '#fff' }}>
+                          {spaBooking ? 'Đang đặt...' : '✅ Xác nhận đặt lịch'}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {spaMyBookings.length === 0 ? (
+                    <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                      <Text style={{ fontSize: 32, marginBottom: 8 }}>💆</Text>
+                      <Text style={{ fontSize: 14, color: '#9CA3AF' }}>Chưa có lịch spa nào</Text>
+                    </View>
+                  ) : spaMyBookings.map(b => (
+                    <View key={b.id} style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 12, marginBottom: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A' }}>{b.serviceName}</Text>
+                        <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: b.status === 'CONFIRMED' ? '#D1FAE5' : b.status === 'PENDING' ? '#FEF3C7' : '#F3F4F6' }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: b.status === 'CONFIRMED' ? '#065F46' : b.status === 'PENDING' ? '#D97706' : '#6B7280' }}>{b.status}</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>{b.date} · {b.timeSlot} · {b.guests} khách</Text>
+                      <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600', marginTop: 2 }}>{b.price === 0 ? 'Miễn phí' : `${(b.price / 1000).toFixed(0)}K`}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -484,6 +722,97 @@ export default function MoreScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Eco Rewards Modal */}
+      <Modal visible={showRewards} animationType="slide" transparent onRequestClose={() => setShowRewards(false)}>
+        <View style={styles.modalBg}>
+          <View style={[styles.modalCard, { maxHeight: '85%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🎁 Đổi điểm Eco</Text>
+              <TouchableOpacity onPress={() => { setShowRewards(false); setRedeemSuccess(null) }}>
+                <Ionicons name="close" size={22} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 13, color: '#059669', fontWeight: '700', marginBottom: 12 }}>
+              Bạn có: {ecoPoints} điểm
+            </Text>
+            {/* Tab */}
+            <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: 10, padding: 4, marginBottom: 16 }}>
+              {(['list', 'history'] as const).map(t => (
+                <TouchableOpacity
+                  key={t}
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: rewardsTab === t ? '#fff' : 'transparent', alignItems: 'center' }}
+                  onPress={() => setRewardsTab(t)}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: rewardsTab === t ? '#1B4332' : '#9CA3AF' }}>
+                    {t === 'list' ? 'Phần thưởng' : 'Lịch sử đổi'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {redeemSuccess && (
+              <View style={{ backgroundColor: '#ECFDF5', borderRadius: 12, padding: 14, marginBottom: 12, alignItems: 'center' }}>
+                <Text style={{ fontSize: 20 }}>🎉</Text>
+                <Text style={{ fontWeight: '700', color: '#065F46', fontSize: 14, marginTop: 4 }}>Đổi thành công!</Text>
+                <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>{redeemSuccess.title}</Text>
+                <Text style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: '800', color: '#059669', marginTop: 8 }}>{redeemSuccess.code}</Text>
+                <Text style={{ color: '#9CA3AF', fontSize: 11, marginTop: 4 }}>Xuất trình mã này tại lễ tân</Text>
+              </View>
+            )}
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {rewardsTab === 'list' && (
+                ecoRewards.length === 0
+                  ? <Text style={styles.boardEmpty}>Đang tải phần thưởng…</Text>
+                  : ecoRewards.map(r => {
+                    const canRedeem = ecoPoints >= r.pointCost && r.stock !== 0
+                    return (
+                      <View key={r.id} style={{ backgroundColor: '#F9F9F9', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1A1A1A' }}>{r.title}</Text>
+                            {r.description ? <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{r.description}</Text> : null}
+                            <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600', marginTop: 6 }}>🌿 {r.pointCost} điểm</Text>
+                            {r.stock > 0 && <Text style={{ fontSize: 11, color: '#9CA3AF' }}>Còn {r.stock} phần thưởng</Text>}
+                          </View>
+                          <TouchableOpacity
+                            disabled={!canRedeem || redeeming === r.id}
+                            onPress={() => redeemReward(r.id)}
+                            style={{ backgroundColor: canRedeem ? '#059669' : '#D1D5DB', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, marginLeft: 10 }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                              {redeeming === r.id ? '…' : canRedeem ? 'Đổi' : 'Thiếu điểm'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )
+                  })
+              )}
+              {rewardsTab === 'history' && (
+                ecoRedemptions.length === 0
+                  ? <Text style={styles.boardEmpty}>Chưa có lịch sử đổi điểm</Text>
+                  : ecoRedemptions.map(r => (
+                    <View key={r.id} style={{ backgroundColor: '#F9F9F9', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#1A1A1A', flex: 1 }}>{r.reward.title}</Text>
+                        <Text style={{ fontSize: 11, color: r.status === 'ACTIVE' ? '#059669' : '#9CA3AF', fontWeight: '600' }}>
+                          {r.status === 'ACTIVE' ? 'Còn hiệu lực' : r.status === 'USED' ? 'Đã dùng' : 'Hết hạn'}
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: 'monospace', fontSize: 13, color: '#059669', fontWeight: '700', marginTop: 6 }}>{r.code}</Text>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>
+                        -{r.pointsUsed} điểm · HSD: {new Date(r.expiresAt).toLocaleDateString('vi-VN')}
+                      </Text>
+                    </View>
+                  ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       </View>
     </ScrollView>
   )
@@ -549,6 +878,10 @@ const styles = StyleSheet.create({
   },
   galleryAdd: { backgroundColor: '#F3F4F6' },
   galleryAddText: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
+  spaCard: { borderRadius: 14, overflow: 'hidden', marginBottom: 16 },
+  spaGrad: { flexDirection: 'row', alignItems: 'center', padding: 18 },
+  spaTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  spaSub: { fontSize: 12, color: '#6EE7B7' },
   sos: { borderRadius: 14, overflow: 'hidden', marginBottom: 14 },
   sosGrad: { flexDirection: 'row', alignItems: 'center', padding: 20 },
   sosTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },

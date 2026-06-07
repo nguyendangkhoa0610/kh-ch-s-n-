@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { api, type RevenuePoint } from '../lib/api'
+import { api, type RevenuePoint, type OccupancyPoint, type Summary } from '../lib/api'
 
 function formatPriceFull(n: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
@@ -12,23 +12,35 @@ function formatPrice(n: number) {
 }
 
 export function ReportsPage() {
+  const [activeChart, setActiveChart] = useState<'revenue' | 'occupancy'>('revenue')
   const [data, setData] = useState<RevenuePoint[]>([])
+  const [occupancy, setOccupancy] = useState<OccupancyPoint[]>([])
+  const [summary, setSummary] = useState<Summary | null>(null)
   const [days, setDays] = useState(30)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    api.getRevenueChart(days)
-      .then(setData)
-      .finally(() => setLoading(false))
+    Promise.all([
+      api.getRevenueChart(days),
+      api.getOccupancyChart(days),
+      api.getSummary(),
+    ]).then(([rev, occ, sum]) => {
+      setData(rev)
+      setOccupancy(occ)
+      setSummary(sum)
+    }).finally(() => setLoading(false))
   }, [days])
 
   const totalRevenue = data.reduce((s, d) => s + d.revenue, 0)
   const totalBookings = data.reduce((s, d) => s + d.bookings, 0)
   const avgPerBooking = totalBookings ? Math.round(totalRevenue / totalBookings) : 0
   const peakDay = data.reduce((best, d) => d.revenue > (best?.revenue ?? 0) ? d : best, data[0])
+  const avgOccupancy = occupancy.length
+    ? Math.round(occupancy.reduce((s, d) => s + d.occupancyRate, 0) / occupancy.length)
+    : 0
 
-  const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+  const BASE = import.meta.env.VITE_API_URL ?? '/api'
   const exportRevenue = () => window.open(`${BASE}/export/revenue?days=${days}`, '_blank')
   const exportBookings = () => window.open(`${BASE}/export/bookings`, '_blank')
 
@@ -64,8 +76,26 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Today's snapshot */}
+      {summary && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-blue-700">{summary.todayCheckins}</p>
+            <p className="text-xs text-blue-500 mt-1">Check-in hôm nay</p>
+          </div>
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-amber-700">{summary.todayCheckouts}</p>
+            <p className="text-xs text-amber-500 mt-1">Check-out hôm nay</p>
+          </div>
+          <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-red-600">{summary.pendingBookings}</p>
+            <p className="text-xs text-red-400 mt-1">Đặt phòng chờ duyệt</p>
+          </div>
+        </div>
+      )}
+
+      {/* Revenue KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {[
           { label: 'Doanh thu', value: formatPriceFull(totalRevenue), icon: '💰', color: 'text-emerald-600' },
           { label: 'Đặt phòng', value: String(totalBookings), icon: '📅', color: 'text-blue-600' },
@@ -82,12 +112,45 @@ export function ReportsPage() {
         ))}
       </div>
 
-      {/* Area chart */}
+      {/* Occupancy KPI cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[
+          { label: 'Occupancy TB', value: `${avgOccupancy}%`, icon: '🏨', color: 'text-emerald-600', sub: `Hiện tại: ${summary?.occupancyRate ?? 0}%` },
+          { label: 'ADR (TB/đêm)', value: formatPriceFull(summary?.adr ?? 0), icon: '💵', color: 'text-blue-600', sub: 'Doanh thu trung bình / đêm' },
+          { label: 'RevPAR', value: formatPriceFull(summary?.revpar ?? 0), icon: '📈', color: 'text-violet-600', sub: 'ADR × Occupancy' },
+        ].map((k) => (
+          <div key={k.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">{k.icon}</span>
+              <span className="text-xs text-slate-400 font-medium">{k.label}</span>
+            </div>
+            <p className={`text-lg font-bold ${k.color} leading-tight`}>{k.value}</p>
+            <p className="text-xs text-slate-400 mt-1">{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart toggle + chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <h3 className="font-semibold text-slate-800 text-sm mb-5">Doanh thu theo ngày</h3>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveChart('revenue')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeChart === 'revenue' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+            >
+              💰 Doanh thu
+            </button>
+            <button
+              onClick={() => setActiveChart('occupancy')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeChart === 'occupancy' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+            >
+              🏨 Công suất
+            </button>
+          </div>
+        </div>
         {loading ? (
           <div className="flex justify-center py-16 text-slate-400 text-sm">Đang tải...</div>
-        ) : (
+        ) : activeChart === 'revenue' ? (
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={data} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
               <defs>
@@ -106,6 +169,25 @@ export function ReportsPage() {
               <Area type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={2.5} fill="url(#revenueGrad)" dot={false} activeDot={{ r: 4 }} />
             </AreaChart>
           </ResponsiveContainer>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={occupancy} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} interval={days > 14 ? 6 : 1} />
+              <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: '#94a3b8' }} domain={[0, 100]} />
+              <Tooltip
+                formatter={(v) => [`${v}%`, 'Công suất phòng']}
+                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+              />
+              <Area type="monotone" dataKey="occupancyRate" stroke="#6366f1" strokeWidth={2.5} fill="url(#occGrad)" dot={false} activeDot={{ r: 4 }} />
+            </AreaChart>
+          </ResponsiveContainer>
         )}
       </div>
 
@@ -118,19 +200,23 @@ export function ReportsPage() {
           <table className="w-full">
             <thead className="bg-slate-50 sticky top-0">
               <tr>
-                {['Ngày', 'Đặt phòng', 'Doanh thu'].map((h) => (
+                {['Ngày', 'Đặt phòng', 'Doanh thu', 'Công suất'].map((h) => (
                   <th key={h} className="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {[...data].reverse().map((row) => (
-                <tr key={row.date} className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-sm text-slate-600">{row.date}</td>
-                  <td className="px-5 py-2.5 text-sm font-medium text-slate-800">{row.bookings}</td>
-                  <td className="px-5 py-2.5 text-sm font-semibold text-emerald-700">{formatPriceFull(row.revenue)}</td>
-                </tr>
-              ))}
+              {[...data].reverse().map((row, i) => {
+                const occ = [...occupancy].reverse()[i]
+                return (
+                  <tr key={row.date} className="hover:bg-slate-50">
+                    <td className="px-5 py-2.5 text-sm text-slate-600">{row.date}</td>
+                    <td className="px-5 py-2.5 text-sm font-medium text-slate-800">{row.bookings}</td>
+                    <td className="px-5 py-2.5 text-sm font-semibold text-emerald-700">{formatPriceFull(row.revenue)}</td>
+                    <td className="px-5 py-2.5 text-sm text-violet-600 font-medium">{occ ? `${occ.occupancyRate}%` : '—'}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

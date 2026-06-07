@@ -21,6 +21,8 @@ type GuestInfo = {
   email: string;
   phone: string;
   notes: string;
+  idNumber: string;
+  idType: string;
 };
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -397,6 +399,36 @@ function Step2Guest({
             <GuestField label="Họ và tên" value={info.name} onChange={v => onChange({ name: v })} placeholder="Nguyễn Văn A" error={errors.name} />
             <GuestField label="Email" value={info.email} onChange={v => onChange({ email: v })} type="email" placeholder="email@example.com" error={errors.email} />
             <GuestField label="Số điện thoại" value={info.phone} onChange={v => onChange({ phone: v })} type="tel" placeholder="0901 234 567" error={errors.phone} />
+
+            {/* Khai báo tạm trú */}
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                Giấy tờ tùy thân <span className="text-slate-300 font-normal">(theo Nghị định 105/2016)</span>
+              </p>
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <GuestField
+                  label="Số CCCD / Passport"
+                  value={info.idNumber}
+                  onChange={v => onChange({ idNumber: v })}
+                  placeholder="001234567890"
+                  required={false}
+                />
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-semibold text-slate-700">Loại giấy tờ</span>
+                  <select
+                    value={info.idType}
+                    onChange={e => onChange({ idType: e.target.value })}
+                    className="border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="CCCD">CCCD</option>
+                    <option value="CMND">CMND</option>
+                    <option value="PASSPORT">Passport</option>
+                  </select>
+                </label>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">Thông tin dùng cho đăng ký tạm trú, không chia sẻ bên thứ ba</p>
+            </div>
+
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-semibold text-slate-700">Yêu cầu đặc biệt</span>
               <textarea
@@ -891,7 +923,7 @@ function BookingContent() {
   const [guests, setGuests] = useState(Number(params.get("guests") ?? 2));
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(preRoom);
   const { user } = useCustomerAuth();
-  const [guestInfo, setGuestInfo] = useState<GuestInfo>({ name: "", email: "", phone: "", notes: "" });
+  const [guestInfo, setGuestInfo] = useState<GuestInfo>({ name: "", email: "", phone: "", notes: "", idNumber: "", idType: "CCCD" });
 
   // Auto-fill từ tài khoản đã đăng nhập
   useEffect(() => {
@@ -932,8 +964,10 @@ function BookingContent() {
         guests,
         paymentMethod,
         notes: guestInfo.notes,
-        userId: user?.id, // link booking với account nếu đã đăng nhập
+        userId: user?.id,
         promoCode: promo?.code,
+        idNumber: guestInfo.idNumber || undefined,
+        idType: guestInfo.idNumber ? guestInfo.idType : undefined,
       });
       setBookingCode(result.code);
       setBookingId(result.id);

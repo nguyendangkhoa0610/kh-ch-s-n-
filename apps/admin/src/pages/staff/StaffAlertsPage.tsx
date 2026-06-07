@@ -22,7 +22,7 @@ function timeAgo(iso: string) {
 
 export function StaffAlertsPage() {
   const { getHeaders } = useAuth()
-  const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+  const BASE = import.meta.env.VITE_API_URL ?? '/api'
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)

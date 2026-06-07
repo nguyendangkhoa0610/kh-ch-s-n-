@@ -83,6 +83,12 @@ bookingsRouter.post('/guest', async (c) => {
     notes?: string
     userId?: string // optional: link booking với account đã đăng nhập
     promoCode?: string // optional: mã giảm giá
+    // Khai báo tạm trú
+    idNumber?: string
+    idType?: string
+    nationality?: string
+    dateOfBirth?: string
+    address?: string
   }>()
 
   // Validate
@@ -174,6 +180,11 @@ bookingsRouter.post('/guest', async (c) => {
       checkOut,
       guests: body.guests,
       totalAmount,
+      idNumber: body.idNumber,
+      idType: body.idType,
+      nationality: body.nationality ?? 'VN',
+      dateOfBirth: body.dateOfBirth,
+      address: body.address,
       notes: [
         body.notes,
         !availableRoom ? `[Phòng chưa assign — loại: ${roomType.name}]` : null,
@@ -314,6 +325,36 @@ bookingsRouter.patch('/:id/status', async (c) => {
   if (body.status === 'CHECKED_IN' && booking.roomId) {
     await prisma.room.update({ where: { id: booking.roomId }, data: { status: 'OCCUPIED' } }).catch(() => {})
   }
+
+  return c.json({ data: booking })
+})
+
+// PATCH /api/bookings/:id/identity — admin cập nhật giấy tờ
+bookingsRouter.patch('/:id/identity', async (c) => {
+  const header = c.req.header('Authorization') ?? ''
+  if (!header.startsWith('Bearer ')) return c.json({ error: 'Unauthorized' }, 401)
+  try {
+    const p = await verify(header.slice(7), JWT_SECRET, 'HS256') as { role: string }
+    if (!['ADMIN', 'MANAGER', 'STAFF'].includes(p.role)) return c.json({ error: 'Forbidden' }, 403)
+  } catch { return c.json({ error: 'Unauthorized' }, 401) }
+
+  const id = c.req.param('id')
+  const body = await c.req.json<{
+    idNumber?: string; idType?: string; nationality?: string
+    dateOfBirth?: string; address?: string
+  }>()
+
+  const booking = await prisma.booking.update({
+    where: { id },
+    data: {
+      idNumber: body.idNumber,
+      idType: body.idType,
+      nationality: body.nationality,
+      dateOfBirth: body.dateOfBirth,
+      address: body.address,
+    },
+    select: { id: true, idNumber: true, idType: true, nationality: true, dateOfBirth: true, address: true },
+  })
 
   return c.json({ data: booking })
 })

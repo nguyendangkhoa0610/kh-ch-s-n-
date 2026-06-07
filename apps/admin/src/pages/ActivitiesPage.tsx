@@ -143,14 +143,51 @@ function F({ label, value, onChange, type='text' }: { label: string; value: stri
   )
 }
 
+type SpaBookingAdmin = {
+  id: string; service: string; serviceName: string; date: string; timeSlot: string
+  guests: number; price: number; status: string; notes: string | null
+  booking: { code: string; user: { name: string; phone: string | null }; room: { number: string } | null }
+}
+
+const SPA_STATUS_COLOR: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700',
+  CONFIRMED: 'bg-blue-100 text-blue-700',
+  DONE: 'bg-emerald-100 text-emerald-700',
+  CANCELLED: 'bg-slate-100 text-slate-500',
+}
+const SPA_STATUS_LABEL: Record<string, string> = { PENDING: 'Chờ', CONFIRMED: 'Xác nhận', DONE: 'Xong', CANCELLED: 'Hủy' }
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export function ActivitiesPage() {
+  const [activeTab, setActiveTab] = useState<'activities' | 'spa'>('activities')
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [error, setError] = useState('')
-  const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+  const BASE = import.meta.env.VITE_API_URL ?? '/api'
+
+  // Spa admin state
+  const [spaBookings, setSpaBookings] = useState<SpaBookingAdmin[]>([])
+  const [spaLoading, setSpaLoading] = useState(false)
+  const [spaDate, setSpaDate] = useState('')
+  const [spaStatusFilter, setSpaStatusFilter] = useState('')
+
+  const loadSpaBookings = async () => {
+    setSpaLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (spaDate) params.set('date', spaDate)
+      if (spaStatusFilter) params.set('status', spaStatusFilter)
+      const res = await api.get<SpaBookingAdmin[]>(`/spa?${params.toString()}`)
+      setSpaBookings(res)
+    } catch { /* silent */ } finally { setSpaLoading(false) }
+  }
+
+  const updateSpaStatus = async (id: string, status: string) => {
+    await api.patch<SpaBookingAdmin>(`/spa/${id}`, { status })
+    setSpaBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
+  }
 
   useEffect(() => {
     fetch(`${BASE}/activities?all=true`)
@@ -190,8 +227,90 @@ export function ActivitiesPage() {
     <div>
       {editing && <EditModal act={editing} onClose={() => setEditing(null)} onSave={saveActivity as never} />}
 
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>Quản lý Hoạt động</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>Hoạt động & Spa</h2>
+      </div>
+
+      {/* Tab toggle */}
+      <div className="flex gap-1 mb-6 bg-slate-100 p-1 rounded-xl w-fit">
+        <button onClick={() => setActiveTab('activities')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'activities' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          🎯 Hoạt động
+        </button>
+        <button onClick={() => { setActiveTab('spa'); loadSpaBookings() }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'spa' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          💆 Spa bookings
+        </button>
+      </div>
+
+      {/* Spa tab */}
+      {activeTab === 'spa' && (
+        <div>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <p className="text-sm text-slate-500">Lịch đặt spa từ khách qua app</p>
+            <div className="flex gap-2 flex-wrap">
+              <input type="date" value={spaDate} onChange={e => setSpaDate(e.target.value)}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+              <select value={spaStatusFilter} onChange={e => setSpaStatusFilter(e.target.value)}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                <option value="">Tất cả trạng thái</option>
+                {Object.entries(SPA_STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <button onClick={loadSpaBookings} className="px-4 py-2 text-sm bg-slate-100 rounded-lg hover:bg-slate-200">↻ Tải lại</button>
+            </div>
+          </div>
+          {spaLoading ? (
+            <div className="text-center text-slate-400 py-16">Đang tải...</div>
+          ) : spaBookings.length === 0 ? (
+            <div className="text-center text-slate-400 py-16">
+              <div className="text-4xl mb-3">💆</div>
+              <div>Chưa có lịch spa nào</div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {['Ngày/Giờ', 'Dịch vụ', 'Khách', 'Phòng', 'Giá', 'Trạng thái', 'Thao tác'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {spaBookings.map(b => (
+                    <tr key={b.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 text-sm text-slate-600">{b.date}<br /><span className="text-xs text-slate-400">{b.timeSlot}</span></td>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{b.serviceName}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{b.booking.user.name}<br /><span className="text-xs text-slate-400">{b.booking.user.phone}</span></td>
+                      <td className="px-4 py-3 text-sm text-slate-600">P.{b.booking.room?.number ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-emerald-700">
+                        {b.price === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.price)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${SPA_STATUS_COLOR[b.status]}`}>
+                          {SPA_STATUS_LABEL[b.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={b.status}
+                          onChange={e => updateSpaStatus(b.id, e.target.value)}
+                          className={`text-xs font-semibold px-2 py-1.5 rounded-lg border-0 cursor-pointer ${SPA_STATUS_COLOR[b.status]}`}
+                        >
+                          {Object.entries(SPA_STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'activities' && <div>
+      <div className="flex items-center justify-between mb-4">
         <span className="text-sm text-slate-400">{activities.length} hoạt động · {activities.filter(a => a.isActive).length} đang hoạt động</span>
       </div>
 
@@ -252,6 +371,7 @@ export function ActivitiesPage() {
           ))}
         </div>
       )}
+      </div>}
     </div>
   )
 }

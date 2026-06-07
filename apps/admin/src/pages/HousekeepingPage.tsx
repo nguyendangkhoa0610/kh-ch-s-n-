@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { api, type HousekeepingTask, type Staff } from '../lib/api'
+import { api, type HousekeepingTask, type Staff, type ServiceRequest } from '../lib/api'
 
 const TYPE_LABEL: Record<string, string> = {
   CHECKOUT: 'Check-out', STAYOVER: 'Đang lưu trú', INSPECTION: 'Kiểm tra', DEEP_CLEAN: 'Vệ sinh sâu',
@@ -24,7 +24,19 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+const SR_TYPE_LABEL: Record<string, string> = {
+  HOUSEKEEPING: '🧹 Dọn phòng', SPA: '💆 Spa',
+  TRANSPORT: '🚗 Xe đưa đón', ROOM_SERVICE: '🍽️ Room Service', OTHER: '📋 Khác',
+}
+const SR_STATUS_COLOR: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  DONE: 'bg-emerald-100 text-emerald-700',
+}
+const SR_STATUS_LABEL: Record<string, string> = { PENDING: 'Chờ xử lý', IN_PROGRESS: 'Đang xử lý', DONE: 'Hoàn thành' }
+
 export function HousekeepingPage() {
+  const [activeTab, setActiveTab] = useState<'tasks' | 'requests'>('tasks')
   const [tasks, setTasks] = useState<HousekeepingTask[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
   const [date, setDate] = useState(today())
@@ -38,6 +50,27 @@ export function HousekeepingPage() {
   })
 
   const [rooms, setRooms] = useState<{ id: string; number: string; roomType: { name: string }; tasks: HousekeepingTask[] }[]>([])
+
+  // Service Requests state
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([])
+  const [srFilter, setSrFilter] = useState('PENDING')
+  const [srLoading, setSrLoading] = useState(false)
+
+  const loadServiceRequests = useCallback(async () => {
+    setSrLoading(true)
+    const data = await api.getServiceRequests(srFilter || undefined)
+    setServiceRequests(data)
+    setSrLoading(false)
+  }, [srFilter])
+
+  useEffect(() => {
+    if (activeTab === 'requests') loadServiceRequests()
+  }, [activeTab, loadServiceRequests])
+
+  const updateSR = async (id: string, status: string) => {
+    await api.updateServiceRequest(id, status)
+    setServiceRequests(prev => prev.map(r => r.id === id ? { ...r, status: status as ServiceRequest['status'] } : r))
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -84,7 +117,7 @@ export function HousekeepingPage() {
 
   const exportCSV = () => {
     const token = (window as any).__AUTH_TOKEN__
-    window.open(`${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'}/export/housekeeping?date=${date}`, '_blank')
+    window.open(`${import.meta.env.VITE_API_URL ?? '/api'}/export/housekeeping?date=${date}`, '_blank')
   }
 
   const done = tasks.filter(t => t.status === 'DONE').length
@@ -92,6 +125,106 @@ export function HousekeepingPage() {
 
   return (
     <div>
+      {/* Tab switcher */}
+      <div className="flex gap-1 mb-6 bg-slate-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tasks' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          🧹 Dọn phòng
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'requests' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          🔔 Yêu cầu dịch vụ
+          {serviceRequests.filter(r => r.status === 'PENDING').length > 0 && activeTab !== 'requests' && (
+            <span className="ml-1.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              {serviceRequests.filter(r => r.status === 'PENDING').length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Service Requests tab */}
+      {activeTab === 'requests' && (
+        <div>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>Yêu cầu dịch vụ</h2>
+              <p className="text-sm text-slate-500 mt-1">Yêu cầu từ khách qua AI Concierge</p>
+            </div>
+            <div className="flex gap-2">
+              <select value={srFilter} onChange={e => setSrFilter(e.target.value)}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                <option value="">Tất cả</option>
+                <option value="PENDING">Chờ xử lý</option>
+                <option value="IN_PROGRESS">Đang xử lý</option>
+                <option value="DONE">Hoàn thành</option>
+              </select>
+              <button onClick={loadServiceRequests} className="px-4 py-2 text-sm bg-slate-100 rounded-lg hover:bg-slate-200">
+                ↻ Làm mới
+              </button>
+            </div>
+          </div>
+          {srLoading ? (
+            <div className="text-center text-slate-400 py-16">Đang tải...</div>
+          ) : serviceRequests.length === 0 ? (
+            <div className="text-center text-slate-400 py-16">
+              <div className="text-4xl mb-3">🔔</div>
+              <div>Không có yêu cầu nào</div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {serviceRequests.map(req => (
+                <div key={req.id} className="bg-white rounded-xl border border-slate-100 p-4 flex items-start gap-4 shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-800">
+                        Phòng {req.booking.room?.number ?? '—'}
+                      </span>
+                      <span className="text-xs text-slate-500">{req.booking.user.name}</span>
+                      <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                        {SR_TYPE_LABEL[req.type] ?? req.type}
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SR_STATUS_COLOR[req.status]}`}>
+                        {SR_STATUS_LABEL[req.status]}
+                      </span>
+                    </div>
+                    {req.details && (
+                      <p className="text-sm text-slate-600 mt-1.5">{req.details}</p>
+                    )}
+                    <p className="text-xs text-slate-400 mt-1">
+                      {new Date(req.createdAt).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {req.status === 'PENDING' && (
+                      <button
+                        onClick={() => updateSR(req.id, 'IN_PROGRESS')}
+                        className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Nhận việc
+                      </button>
+                    )}
+                    {req.status !== 'DONE' && (
+                      <button
+                        onClick={() => updateSR(req.id, 'DONE')}
+                        className="px-3 py-1.5 text-xs bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
+                      >
+                        ✓ Xong
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Housekeeping Tasks tab */}
+      {activeTab === 'tasks' && <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>Housekeeping</h2>
@@ -185,7 +318,7 @@ export function HousekeepingPage() {
         </div>
       )}
 
-      {/* Create modal */}
+      {/* Create modal — bên trong tasks tab */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
@@ -249,6 +382,7 @@ export function HousekeepingPage() {
           </div>
         </div>
       )}
+      </div>}
     </div>
   )
 }

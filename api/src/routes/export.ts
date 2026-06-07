@@ -136,3 +136,43 @@ exportRouter.get('/housekeeping', async (c) => {
   c.header('Content-Disposition', `attachment; filename="housekeeping_${Date.now()}.csv"`)
   return c.body('﻿' + csv)
 })
+
+// GET /api/export/guest-registration?date=2026-06-07 — khai báo tạm trú cho công an
+exportRouter.get('/guest-registration', async (c) => {
+  const dateParam = c.req.query('date')
+  const start = dateParam ? new Date(dateParam) : new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 1)
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      status: { in: ['CHECKED_IN', 'COMPLETED'] },
+      checkIn: { gte: start, lt: end },
+    },
+    include: {
+      user: { select: { name: true, phone: true } },
+      room: { select: { number: true } },
+    },
+    orderBy: { checkIn: 'asc' },
+  })
+
+  const rows = bookings.map((b, i) => ({
+    'STT': i + 1,
+    'Họ tên': b.user.name,
+    'CCCD/Passport': b.idNumber ?? '',
+    'Loại giấy tờ': b.idType ?? '',
+    'Quốc tịch': b.nationality ?? 'VN',
+    'Ngày sinh': b.dateOfBirth ?? '',
+    'Địa chỉ thường trú': b.address ?? '',
+    'Phòng': b.room?.number ?? '',
+    'Ngày đến': fmtDate(b.checkIn),
+    'Ngày đi': fmtDate(b.checkOut),
+    'Điện thoại': b.user.phone ?? '',
+  }))
+
+  const csv = toCSV(rows)
+  c.header('Content-Type', 'text/csv; charset=utf-8')
+  c.header('Content-Disposition', `attachment; filename="khai_bao_tam_tru_${(dateParam ?? new Date().toISOString().slice(0, 10))}.csv"`)
+  return c.body('﻿' + csv)
+})

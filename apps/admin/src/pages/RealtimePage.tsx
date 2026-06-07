@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/auth'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 type CrowdLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 type Settings = { crowdLevel: CrowdLevel; notice: string; updatedAt: string; updatedBy: string }
@@ -12,11 +13,37 @@ const CROWD_OPTIONS: { id: CrowdLevel; label: string; desc: string; color: strin
 ]
 
 export function RealtimePage() {
+  const { getHeaders } = useAuth()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [localCrowd, setLocalCrowd] = useState<CrowdLevel>('LOW')
   const [localNotice, setLocalNotice] = useState('')
+
+  // Push broadcast
+  const [pushTarget, setPushTarget] = useState<'ALL_GUESTS' | 'STAYING' | 'STAFF'>('STAYING')
+  const [pushTitle, setPushTitle] = useState('')
+  const [pushBody, setPushBody] = useState('')
+  const [pushSending, setPushSending] = useState(false)
+  const [pushResult, setPushResult] = useState<string | null>(null)
+
+  async function sendBroadcast() {
+    if (!pushTitle.trim() || !pushBody.trim()) return
+    setPushSending(true)
+    setPushResult(null)
+    try {
+      const roles = pushTarget === 'STAFF' ? ['STAFF', 'MANAGER'] : ['GUEST']
+      const res = await fetch(`${BASE}/notifications/send`, {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles, title: pushTitle, message: pushBody }),
+      })
+      const json = await res.json() as { data: { sent: number } }
+      setPushResult(`Đã gửi đến ${json.data.sent} thiết bị`)
+      setPushTitle(''); setPushBody('')
+    } catch { setPushResult('Gửi thất bại') }
+    finally { setPushSending(false) }
+  }
 
   function load() {
     fetch(`${BASE}/staff/realtime`)
@@ -146,6 +173,55 @@ export function RealtimePage() {
               Đang lưu...
             </>
           ) : saved ? '✅ Đã cập nhật!' : '💾 Lưu & áp dụng ngay'}
+        </button>
+      </div>
+
+      {/* Push Broadcast */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4 mt-6">
+        <h3 className="text-base font-bold text-slate-800">📣 Gửi thông báo đẩy</h3>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Đối tượng nhận</label>
+          <div className="flex gap-2 flex-wrap">
+            {([
+              { id: 'STAYING', label: 'Khách đang ở' },
+              { id: 'ALL_GUESTS', label: 'Tất cả khách' },
+              { id: 'STAFF', label: 'Nhân viên' },
+            ] as const).map(opt => (
+              <button key={opt.id} onClick={() => setPushTarget(opt.id)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                  pushTarget === opt.id ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-600 hover:border-emerald-400'
+                }`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Tiêu đề</label>
+          <input
+            value={pushTitle} onChange={e => setPushTitle(e.target.value)}
+            placeholder="VD: Sự kiện tối nay tại Beach Club"
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Nội dung</label>
+          <textarea
+            value={pushBody} onChange={e => setPushBody(e.target.value)}
+            rows={2} maxLength={150}
+            placeholder="VD: 19:00 — Đêm nhạc Acoustic tại Beach Club. Đặt bàn trước qua lễ tân."
+            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+          />
+          <p className="text-xs text-slate-400 text-right mt-1">{pushBody.length}/150</p>
+        </div>
+        {pushResult && (
+          <div className={`text-sm font-medium rounded-xl px-4 py-2 ${pushResult.includes('thất bại') ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+            {pushResult}
+          </div>
+        )}
+        <button onClick={sendBroadcast} disabled={pushSending || !pushTitle.trim() || !pushBody.trim()}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold rounded-xl transition-colors text-sm">
+          {pushSending ? 'Đang gửi…' : '🔔 Gửi thông báo'}
         </button>
       </div>
     </div>

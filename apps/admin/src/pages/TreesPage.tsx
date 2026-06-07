@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 type Tree = {
   id: string; qrCode: string; name: string; scientificName: string | null

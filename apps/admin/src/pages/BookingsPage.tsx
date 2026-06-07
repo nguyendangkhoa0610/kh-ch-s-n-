@@ -71,6 +71,9 @@ export function BookingsPage() {
   const [checkoutTarget, setCheckoutTarget] = useState<Booking | null>(null)
   const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
+  const [editingIdentity, setEditingIdentity] = useState(false)
+  const [identityForm, setIdentityForm] = useState({ idNumber: '', idType: 'CCCD', nationality: 'VN', dateOfBirth: '', address: '' })
+  const [savingIdentity, setSavingIdentity] = useState(false)
 
   const showGuestProfile = async (userId: string) => {
     setLoadingProfile(true)
@@ -102,6 +105,20 @@ export function BookingsPage() {
     }
   }
 
+  async function saveIdentity() {
+    if (!detail) return
+    setSavingIdentity(true)
+    try {
+      await api.patch(`/bookings/${detail.id}/identity`, identityForm)
+      setDetail(prev => prev ? { ...prev, ...identityForm } : prev)
+      setBookings(prev => prev.map(b => b.id === detail.id ? { ...b, ...identityForm } : b))
+      setEditingIdentity(false)
+    } catch {
+      alert('Cập nhật thất bại.')
+    } finally {
+      setSavingIdentity(false) }
+  }
+
   const q = search.toLowerCase().trim()
   const filtered = q
     ? bookings.filter(b =>
@@ -119,12 +136,24 @@ export function BookingsPage() {
         <h2 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Lora, serif' }}>
           Quản lý Đặt phòng
         </h2>
-        <button
-          onClick={() => exportCSV(filtered)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          ⬇️ Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0]
+              const BASE = import.meta.env.VITE_API_URL ?? '/api'
+              window.open(`${BASE}/export/guest-registration?date=${today}`, '_blank')
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            📋 Khai báo tạm trú
+          </button>
+          <button
+            onClick={() => exportCSV(filtered)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            ⬇️ Export CSV
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -198,7 +227,7 @@ export function BookingsPage() {
                   return (
                     <tr key={b.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
-                        <button onClick={() => setDetail(b)}
+                        <button onClick={() => { setDetail(b); setEditingIdentity(false) }}
                           className="font-mono text-xs font-semibold text-emerald-700 hover:underline">
                           {b.code}
                         </button>
@@ -436,6 +465,60 @@ export function BookingsPage() {
                   <span>{formatPrice(Math.round(detail.totalAmount * 0.3))}</span>
                 </div>
               </div>
+              {/* Giấy tờ tùy thân / Khai báo tạm trú */}
+              <div className="border-t border-slate-100 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase">Khai báo tạm trú</p>
+                  <div className="flex gap-1.5 items-center">
+                    {!detail.idNumber && <span className="text-[10px] font-semibold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Chưa có</span>}
+                    <button
+                      onClick={() => {
+                        setIdentityForm({
+                          idNumber: detail.idNumber ?? '',
+                          idType: detail.idType ?? 'CCCD',
+                          nationality: detail.nationality ?? 'VN',
+                          dateOfBirth: detail.dateOfBirth ?? '',
+                          address: detail.address ?? '',
+                        })
+                        setEditingIdentity(true)
+                      }}
+                      className="text-[10px] font-semibold text-blue-600 hover:underline"
+                    >Cập nhật</button>
+                  </div>
+                </div>
+                {editingIdentity ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input className="col-span-2 border border-slate-200 rounded-lg px-2 py-1.5 text-xs" placeholder="Số CCCD/Passport" value={identityForm.idNumber} onChange={e => setIdentityForm(f => ({ ...f, idNumber: e.target.value }))} />
+                      <select className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs" value={identityForm.idType} onChange={e => setIdentityForm(f => ({ ...f, idType: e.target.value }))}>
+                        <option value="CCCD">CCCD</option>
+                        <option value="CMND">CMND</option>
+                        <option value="PASSPORT">Passport</option>
+                      </select>
+                      <input className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs" placeholder="Quốc tịch (VN)" value={identityForm.nationality} onChange={e => setIdentityForm(f => ({ ...f, nationality: e.target.value }))} />
+                      <input className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs" placeholder="Ngày sinh (DD/MM/YYYY)" value={identityForm.dateOfBirth} onChange={e => setIdentityForm(f => ({ ...f, dateOfBirth: e.target.value }))} />
+                      <input className="col-span-2 border border-slate-200 rounded-lg px-2 py-1.5 text-xs" placeholder="Địa chỉ thường trú" value={identityForm.address} onChange={e => setIdentityForm(f => ({ ...f, address: e.target.value }))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={saveIdentity} disabled={savingIdentity} className="flex-1 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg disabled:opacity-60">
+                        {savingIdentity ? 'Đang lưu…' : 'Lưu'}
+                      </button>
+                      <button onClick={() => setEditingIdentity(false)} className="flex-1 py-1.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-lg">Hủy</button>
+                    </div>
+                  </div>
+                ) : detail.idNumber ? (
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-slate-400">CCCD/Passport: </span><span className="font-medium">{detail.idNumber}</span></div>
+                    <div><span className="text-slate-400">Loại: </span><span className="font-medium">{detail.idType ?? '—'}</span></div>
+                    <div><span className="text-slate-400">Quốc tịch: </span><span className="font-medium">{detail.nationality ?? 'VN'}</span></div>
+                    <div><span className="text-slate-400">Ngày sinh: </span><span className="font-medium">{detail.dateOfBirth ?? '—'}</span></div>
+                    {detail.address && <div className="col-span-2"><span className="text-slate-400">Địa chỉ: </span><span className="font-medium">{detail.address}</span></div>}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">Khách chưa cung cấp giấy tờ</p>
+                )}
+              </div>
+
               {detail.notes && (
                 <div className="bg-amber-50 rounded-xl px-4 py-3 text-amber-700 text-xs border-t border-amber-100">
                   <strong>Ghi chú:</strong> {detail.notes}

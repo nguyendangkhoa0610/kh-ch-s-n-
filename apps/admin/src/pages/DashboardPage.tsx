@@ -57,7 +57,14 @@ export function DashboardPage() {
     { label: 'Tổng doanh thu', value: formatPriceFull(summary.totalRevenue), color: 'text-emerald-600', icon: '💰' },
     { label: 'Tổng đặt phòng', value: String(summary.totalBookings), color: 'text-blue-600', icon: '📅' },
     { label: 'Phòng đang trống', value: `${summary.roomsAvailable} / ${summary.roomsTotal}`, color: 'text-slate-700', icon: '🛏' },
-    { label: 'Phòng có khách', value: `${summary.roomsOccupied} / ${summary.roomsTotal}`, color: 'text-amber-600', icon: '🏡' },
+    { label: 'Công suất phòng', value: `${summary.occupancyRate}%`, color: 'text-violet-600', icon: '📊' },
+  ] : []
+
+  const todayKpis = summary ? [
+    { label: 'Check-in hôm nay', value: String(summary.todayCheckins), color: 'text-blue-600', icon: '✈️' },
+    { label: 'Check-out hôm nay', value: String(summary.todayCheckouts), color: 'text-amber-600', icon: '🧳' },
+    { label: 'Chờ xác nhận', value: String(summary.pendingBookings), color: summary.pendingBookings > 0 ? 'text-red-600' : 'text-slate-600', icon: '⏳' },
+    { label: 'ADR', value: formatPriceFull(summary.adr), color: 'text-emerald-600', icon: '💵' },
   ] : []
 
   return (
@@ -82,6 +89,21 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Today KPIs */}
+      {todayKpis.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {todayKpis.map((k) => (
+            <div key={k.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-base">{k.icon}</span>
+                <span className="text-xs text-slate-400 font-medium">{k.label}</span>
+              </div>
+              <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-5">

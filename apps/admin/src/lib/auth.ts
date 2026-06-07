@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 type AdminUser = { id: string; name: string; email: string | null; role: string }
 

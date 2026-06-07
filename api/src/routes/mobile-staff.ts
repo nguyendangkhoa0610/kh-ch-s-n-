@@ -366,11 +366,45 @@ mobileStaffRouter.get('/stats', staffAuth, async (c) => {
   const tomorrow = new Date(today)
   tomorrow.setDate(today.getDate() + 1)
 
-  const [pendingSOS, checkInsToday, pendingBookings] = await Promise.all([
+  const [pendingSOS, checkInsToday, pendingBookings, pendingServiceRequests] = await Promise.all([
     prisma.sOSAlert.count({ where: { status: 'NEW' } }),
     prisma.booking.count({ where: { status: { in: ['PENDING', 'CONFIRMED'] }, checkIn: { gte: today, lt: tomorrow } } }),
     prisma.booking.count({ where: { status: 'PENDING' } }),
+    prisma.serviceRequest.count({ where: { status: 'PENDING' } }),
   ])
 
-  return c.json({ data: { pendingSOS, checkInsToday, pendingBookings } })
+  return c.json({ data: { pendingSOS, checkInsToday, pendingBookings, pendingServiceRequests } })
+})
+
+// ── GET /api/mobile/staff/service-requests ───────────────────────────────────
+
+mobileStaffRouter.get('/service-requests', staffAuth, async (c) => {
+  const status = c.req.query('status')
+  const reqs = await prisma.serviceRequest.findMany({
+    where: status ? { status } : {},
+    include: {
+      booking: {
+        select: {
+          code: true,
+          user: { select: { name: true } },
+          room: { select: { number: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+  return c.json({ data: reqs })
+})
+
+// ── PATCH /api/mobile/staff/service-requests/:id ─────────────────────────────
+
+mobileStaffRouter.patch('/service-requests/:id', staffAuth, async (c) => {
+  const id = c.req.param('id')
+  const { status } = await c.req.json<{ status: string }>()
+  const req = await prisma.serviceRequest.update({
+    where: { id },
+    data: { status },
+  })
+  return c.json({ data: req })
 })

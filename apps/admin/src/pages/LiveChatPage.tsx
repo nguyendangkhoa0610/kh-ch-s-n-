@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../lib/auth'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 type ChatMessage = {
   id: string; sender: 'visitor' | 'staff'; senderName: string

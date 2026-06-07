@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/auth'
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'
+const BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 type Shift = { id: string; startTime: string; endTime: string; area: string; notes: string | null }
 type StaffMember = { id: string; name: string; email: string | null; phone: string | null; role: string; shifts: Shift[] }

@@ -155,6 +155,15 @@ export function SettingsPage() {
         </div>
         <PushNotificationPanel />
       </div>
+
+      {/* Eco Rewards */}
+      <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 bg-slate-50 border-b border-slate-100">
+          <span>🌿</span>
+          <span className="font-semibold text-slate-700">Eco Rewards — Phần thưởng đổi điểm</span>
+        </div>
+        <EcoRewardsPanel />
+      </div>
     </div>
   )
 }
@@ -207,6 +216,113 @@ function PushNotificationPanel() {
         </button>
         {result && <span className="text-sm text-emerald-600 font-medium">{result}</span>}
       </div>
+    </div>
+  )
+}
+
+type EcoReward = { id: string; title: string; description: string | null; pointCost: number; type: string; value: number; isActive: boolean; stock: number }
+const REWARD_TYPES = ['DISCOUNT', 'ACTIVITY', 'VOUCHER', 'UPGRADE'] as const
+const emptyReward = { title: '', description: '', pointCost: 100, type: 'DISCOUNT', value: 50000, stock: -1 }
+
+function EcoRewardsPanel() {
+  const [rewards, setRewards] = useState<EcoReward[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<typeof emptyReward>({ ...emptyReward })
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  useEffect(() => { load() }, [])
+
+  function load() {
+    setLoading(true)
+    api.get<EcoReward[]>('/eco-rewards').then(setRewards).catch(() => {}).finally(() => setLoading(false))
+  }
+
+  async function handleCreate() {
+    if (!form.title.trim()) return
+    setSaving(true)
+    try {
+      await api.post('/eco-rewards', form)
+      setShowForm(false)
+      setForm({ ...emptyReward })
+      load()
+    } catch { alert('Tạo thất bại') }
+    finally { setSaving(false) }
+  }
+
+  async function toggleActive(r: EcoReward) {
+    await api.patch(`/eco-rewards/${r.id}`, { isActive: !r.isActive })
+    load()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Xóa phần thưởng này?')) return
+    setDeletingId(id)
+    try { await api.delete(`/eco-rewards/${id}`); load() }
+    catch { alert('Xóa thất bại') }
+    finally { setDeletingId(null) }
+  }
+
+  if (loading) return <div className="p-5 text-sm text-slate-400">Đang tải...</div>
+
+  return (
+    <div className="p-5 space-y-4">
+      {rewards.length === 0 && !showForm && (
+        <p className="text-sm text-slate-400">Chưa có phần thưởng nào. Tạo reward đầu tiên!</p>
+      )}
+      <div className="space-y-2">
+        {rewards.map(r => (
+          <div key={r.id} className={`flex items-center gap-3 p-3 rounded-xl border ${r.isActive ? 'border-slate-100 bg-slate-50' : 'border-dashed border-slate-200 opacity-60'}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800 truncate">{r.title}</p>
+              <p className="text-xs text-slate-400">{r.pointCost} điểm · {r.type} · Giá trị: {r.value.toLocaleString('vi-VN')} · Stock: {r.stock === -1 ? '∞' : r.stock}</p>
+            </div>
+            <button onClick={() => toggleActive(r)} className={`text-xs px-2.5 py-1 rounded-full font-semibold ${r.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+              {r.isActive ? 'Hiện' : 'Ẩn'}
+            </button>
+            <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id} className="text-xs text-red-400 hover:text-red-600 px-1">✕</button>
+          </div>
+        ))}
+      </div>
+
+      {showForm ? (
+        <div className="border border-emerald-200 rounded-xl p-4 space-y-3 bg-emerald-50">
+          <p className="text-sm font-semibold text-emerald-800">Thêm phần thưởng mới</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Tên phần thưởng" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+            <input className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Mô tả (optional)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-slate-500">Loại</span>
+              <select className="border border-slate-200 rounded-lg px-2 py-2 text-sm" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                {REWARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-slate-500">Điểm cần đổi</span>
+              <input type="number" className="border border-slate-200 rounded-lg px-2 py-2 text-sm" value={form.pointCost} onChange={e => setForm(f => ({ ...f, pointCost: Number(e.target.value) }))} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-slate-500">Giá trị (VND/%/phút)</span>
+              <input type="number" className="border border-slate-200 rounded-lg px-2 py-2 text-sm" value={form.value} onChange={e => setForm(f => ({ ...f, value: Number(e.target.value) }))} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-slate-500">Stock (-1 = không giới hạn)</span>
+              <input type="number" className="border border-slate-200 rounded-lg px-2 py-2 text-sm" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleCreate} disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold disabled:opacity-60">
+              {saving ? 'Đang lưu...' : 'Tạo'}
+            </button>
+            <button onClick={() => { setShowForm(false); setForm({ ...emptyReward }) }} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm">Hủy</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-emerald-300 text-emerald-600 rounded-xl text-sm font-semibold hover:border-emerald-500 transition-colors">
+          + Thêm phần thưởng
+        </button>
+      )}
     </div>
   )
 }

@@ -9,6 +9,7 @@ export type CustomerUser = {
   email: string;
   phone: string | null;
   role: string;
+  ecoPoints?: number;
 };
 
 type AuthState = {

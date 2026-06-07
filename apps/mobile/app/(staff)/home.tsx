@@ -22,6 +22,28 @@ interface Stats {
   pendingSOS: number
   checkInsToday: number
   pendingBookings: number
+  pendingServiceRequests: number
+}
+
+interface ServiceReq {
+  id: string
+  type: string
+  details: string | null
+  status: string
+  createdAt: string
+  booking: {
+    code: string
+    user: { name: string }
+    room: { number: string } | null
+  }
+}
+
+const SR_TYPE_VN: Record<string, string> = {
+  HOUSEKEEPING: '🧹 Dọn phòng',
+  SPA: '💆 Spa',
+  TRANSPORT: '🚗 Xe đưa đón',
+  ROOM_SERVICE: '🍽️ Room Service',
+  OTHER: '📋 Khác',
 }
 
 const AREA_LABELS: Record<string, string> = {
@@ -45,17 +67,20 @@ export default function StaffHome() {
 
   const [shifts, setShifts] = useState<Shift[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
+  const [serviceReqs, setServiceReqs] = useState<ServiceReq[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async () => {
     try {
-      const [shiftsRes, statsRes] = await Promise.all([
+      const [shiftsRes, statsRes, srRes] = await Promise.all([
         api.get<{ shifts: Shift[]; totalStaffOnDuty: number }>('/mobile/staff/shifts', token!),
         api.get<Stats>('/mobile/staff/stats', token!),
+        api.get<ServiceReq[]>('/mobile/staff/service-requests?status=PENDING', token!),
       ])
       setShifts(shiftsRes.data.shifts)
       setStats(statsRes.data)
+      setServiceReqs(srRes.data)
     } catch {
       // fail silently
     } finally {
@@ -63,6 +88,14 @@ export default function StaffHome() {
       setRefreshing(false)
     }
   }, [token])
+
+  const markSRDone = async (id: string) => {
+    try {
+      await api.patch('/mobile/staff/service-requests/' + id, { status: 'DONE' }, token!)
+      setServiceReqs(prev => prev.filter(r => r.id !== id))
+      if (stats) setStats({ ...stats, pendingServiceRequests: Math.max(0, (stats.pendingServiceRequests ?? 0) - 1) })
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => { load() }, [load])
 
@@ -125,8 +158,10 @@ export default function StaffHome() {
               <Text style={[styles.statLabel, isTablet && styles.statLabelT]}>Check-in hôm nay</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statNum, isTablet && styles.statNumT]}>{stats.pendingBookings}</Text>
-              <Text style={[styles.statLabel, isTablet && styles.statLabelT]}>Đặt phòng chờ</Text>
+              <Text style={[styles.statNum, isTablet && styles.statNumT, (stats.pendingServiceRequests ?? 0) > 0 && styles.statRed]}>
+                {stats.pendingServiceRequests ?? 0}
+              </Text>
+              <Text style={[styles.statLabel, isTablet && styles.statLabelT]}>YC dịch vụ</Text>
             </View>
           </View>
         )}
@@ -163,6 +198,43 @@ export default function StaffHome() {
             <Text style={[styles.actionLabel, isTablet && styles.actionLabelT]}>Nhắn nội bộ</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Service Requests */}
+        {serviceReqs.length > 0 && (
+          <>
+            <Text style={[styles.section, isTablet && styles.sectionT]}>
+              🔔 Yêu cầu chờ xử lý
+              <Text style={{ color: '#DC2626' }}> ({serviceReqs.length})</Text>
+            </Text>
+            <View style={{ paddingHorizontal: 16, marginBottom: 20, gap: 8 }}>
+              {serviceReqs.map(req => (
+                <View key={req.id} style={[styles.shiftCard, { borderColor: '#FCA5A5', borderWidth: 1 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: isTablet ? 15 : 13, fontWeight: '700', color: '#1A1A1A' }}>
+                      {SR_TYPE_VN[req.type] ?? req.type}
+                      {req.booking.room?.number ? `  ·  Phòng ${req.booking.room.number}` : ''}
+                    </Text>
+                    {req.details && (
+                      <Text style={{ fontSize: isTablet ? 13 : 12, color: '#6B7280', marginTop: 2 }} numberOfLines={2}>
+                        {req.details}
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                      {new Date(req.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      {' · '}{req.booking.user.name}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => markSRDone(req.id)}
+                    style={{ backgroundColor: '#D1FAE5', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#065F46' }}>✓ Xong</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Today's shifts */}
         <Text style={[styles.section, isTablet && styles.sectionT]}>Ca trực hôm nay</Text>

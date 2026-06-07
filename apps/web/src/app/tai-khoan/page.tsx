@@ -80,6 +80,20 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Eco Points banner */}
+        {(user.ecoPoints ?? 0) > 0 && (
+          <div className="max-w-4xl mx-auto px-6 pt-6">
+            <div className="bg-gradient-to-r from-emerald-800 to-teal-700 rounded-2xl px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-emerald-200 text-xs font-semibold uppercase tracking-wide mb-0.5">Eco Points của bạn</p>
+                <p className="text-white text-2xl font-bold">{user.ecoPoints?.toLocaleString('vi-VN')} <span className="text-emerald-300 text-sm font-medium">điểm xanh</span></p>
+                <p className="text-emerald-300 text-xs mt-1">Mở app Trầm Hương để đổi điểm lấy ưu đãi</p>
+              </div>
+              <div className="text-4xl">🌿</div>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="grid md:grid-cols-[240px_1fr] gap-6">
 

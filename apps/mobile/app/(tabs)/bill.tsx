@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -38,10 +38,12 @@ const fmtDate = (d: string) =>
 
 export default function BillScreen() {
   const token = useStore((s) => s.token)
+  const booking = useStore((s) => s.booking)
   const isTablet = useIsTablet()
   const [bill, setBill] = useState<BillData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [requestingCheckout, setRequestingCheckout] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -123,6 +125,32 @@ export default function BillScreen() {
           ))
         )}
 
+        {/* Checkout request */}
+        {booking && (
+          <TouchableOpacity
+            style={[styles.checkoutBtn, requestingCheckout && { opacity: 0.6 }]}
+            activeOpacity={0.8}
+            disabled={requestingCheckout}
+            onPress={async () => {
+              setRequestingCheckout(true)
+              try {
+                await api.post('/mobile/service-request', {
+                  type: 'OTHER',
+                  details: 'Khách yêu cầu hỗ trợ check-out',
+                }, token!)
+                Alert.alert('Đã gửi yêu cầu', 'Lễ tân sẽ đến hỗ trợ bạn trong vài phút.')
+              } catch {
+                Alert.alert('Lỗi', 'Không thể gửi yêu cầu, vui lòng gặp trực tiếp lễ tân.')
+              } finally { setRequestingCheckout(false) }
+            }}
+          >
+            <Ionicons name="exit-outline" size={18} color="#fff" />
+            <Text style={styles.checkoutBtnText}>
+              {requestingCheckout ? 'Đang gửi…' : 'Yêu cầu Check-out'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <Text style={[styles.note, isTablet && styles.noteT]}>
           Kéo xuống để làm mới · Thanh toán tại lễ tân khi check-out
         </Text>
@@ -180,5 +208,10 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#9CA3AF', marginTop: 8 },
   emptyTextT: { fontSize: 17 },
   note: { textAlign: 'center', fontSize: 11, color: '#9CA3AF', marginTop: 16, lineHeight: 18 },
+  checkoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#1B4332', borderRadius: 14, paddingVertical: 14, marginTop: 20,
+  },
+  checkoutBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   noteT: { fontSize: 13, lineHeight: 22 },
 })

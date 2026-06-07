@@ -34,6 +34,7 @@ model User {
   maintenanceReports  MaintenanceRequest[]
   wishlist            Wishlist[]
   foodOrders          FoodOrder[]
+  ecoRedemptions      EcoRedemption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -96,12 +97,20 @@ model Booking {
   packageType    String?
   status         String  @default("PENDING") // PENDING | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED
 
+  // Khai báo tạm trú
+  idNumber    String?
+  idType      String? // CCCD | CMND | PASSPORT
+  nationality String? @default("VN")
+  dateOfBirth String? // DD/MM/YYYY
+  address     String?
+
   payment         Payment?
   activities      ActivityBooking[]
   digitalKey      DigitalKey?
   foodOrders      FoodOrder[]
   review          BookingReview?
   serviceRequests ServiceRequest[]
+  spaBookings     SpaBooking[]
 
   notes String?
 
@@ -496,6 +505,56 @@ model ServiceRequest {
   updatedAt DateTime @updatedAt
 
   @@map("service_requests")
+}
+
+// Spa booking — đặt dịch vụ spa qua app mobile
+model SpaBooking {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  service   String   // MASSAGE_TRAM_HUONG | FACIAL | COUPLE_SPA | SAUNA
+  date      String   // YYYY-MM-DD
+  timeSlot  String   // "09:00"
+  guests    Int      @default(1)
+  price     Int
+  status    String   @default("PENDING") // PENDING | CONFIRMED | DONE | CANCELLED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("spa_bookings")
+}
+
+// Eco rewards — phần thưởng có thể đổi bằng eco-points
+model EcoReward {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  pointCost   Int
+  type        String   // DISCOUNT | ACTIVITY | VOUCHER | UPGRADE
+  value       Int      // VND hoặc % tùy type
+  isActive    Boolean  @default(true)
+  stock       Int      @default(-1) // -1 = không giới hạn
+  redemptions EcoRedemption[]
+  createdAt   DateTime @default(now())
+
+  @@map("eco_rewards")
+}
+
+// Eco redemptions — lịch sử đổi điểm của khách
+model EcoRedemption {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  rewardId   String
+  reward     EcoReward @relation(fields: [rewardId], references: [id])
+  pointsUsed Int
+  status     String    @default("ACTIVE") // ACTIVE | USED | EXPIRED
+  code       String    @unique
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@map("eco_redemptions")
 }
 
 // Rating sau check-out (mobile)

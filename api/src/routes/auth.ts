@@ -134,7 +134,7 @@ authRouter.get('/customer/me', async (c) => {
     const payload = await verify(header.slice(7), JWT_SECRET, 'HS256')
     const user = await prisma.user.findUnique({
       where: { id: payload['sub'] as string },
-      select: { id: true, name: true, email: true, phone: true, role: true },
+      select: { id: true, name: true, email: true, phone: true, role: true, ecoPoints: true },
     })
     if (!user) return c.json({ error: 'Không tìm thấy tài khoản' }, 404)
     return c.json({ data: user })

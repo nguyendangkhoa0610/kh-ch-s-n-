@@ -29,6 +29,8 @@ import { chatRouter } from './routes/chat.js'
 import { treesRouter } from './routes/trees.js'
 import { bookingReviewsRouter } from './routes/booking-reviews.js'
 import { aiRouter } from './routes/ai.js'
+import { spaRouter } from './routes/spa.js'
+import { ecoRewardsRouter } from './routes/eco-rewards.js'
 import { sendBookingReminder } from './lib/email.js'
 import { prisma } from '@tram-huong/database'
 
@@ -121,6 +123,8 @@ app.route('/chat', chatRouter)
 app.route('/trees', treesRouter)
 app.route('/booking-reviews', bookingReviewsRouter)
 app.route('/ai', aiRouter)
+app.route('/spa', spaRouter)
+app.route('/eco-rewards', ecoRewardsRouter)
 
 // ── Reminder cron job — chạy mỗi ngày 08:00 ───────────────────────────────
 async function sendCheckInReminders() {

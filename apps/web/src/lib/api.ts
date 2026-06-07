@@ -43,8 +43,11 @@ export type GuestBookingPayload = {
   guests: number;
   paymentMethod: string;
   notes?: string;
-  userId?: string; // truyền khi user đã đăng nhập để link booking với account
-  promoCode?: string; // mã giảm giá (optional)
+  userId?: string;
+  promoCode?: string;
+  idNumber?: string;
+  idType?: string;
+  nationality?: string;
 };
 
 export type BookingResult = {
