@@ -156,6 +156,12 @@ export type GuestProfile = {
 }
 
 export const api = {
+  // Generic methods — dùng cho các trang mới
+  get: <T>(path: string) => get<T>(path),
+  post: <T>(path: string, body: unknown) => post<T>(path, body),
+  patch: <T>(path: string, body: unknown) => patch<T>(path, body),
+  delete: (path: string) => del(path),
+
   getRooms: () => get<Room[]>('/rooms'),
   getRoomTypes: () => get<RoomType[]>('/rooms/types'),
   getRoomRack: () => get<{ rooms: unknown[]; stats: { checkinsToday: number; checkoutsToday: number } }>('/rooms/rack'),

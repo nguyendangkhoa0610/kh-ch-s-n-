@@ -21,6 +21,7 @@ import { MenuPage } from './pages/MenuPage'
 import { VouchersPage } from './pages/VouchersPage'
 import { PricingPage } from './pages/PricingPage'
 import { RoomRackPage } from './pages/RoomRackPage'
+import { AiTrainingPage } from './pages/AiTrainingPage'
 import { StaffHomePage } from './pages/staff/StaffHomePage'
 import { StaffCheckInPage } from './pages/staff/StaffCheckInPage'
 import { StaffAlertsPage } from './pages/staff/StaffAlertsPage'
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/vouchers" element={<VouchersPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/ai-training" element={<AiTrainingPage />} />
         </Route>
 
         {/* Staff — prefix /nv */}

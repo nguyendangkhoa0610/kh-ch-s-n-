@@ -458,6 +458,32 @@ model TreeInfo {
   @@map("tree_info")
 }
 
+// Feedback khách cho AI Concierge — dùng để train
+model AiFeedback {
+  id         String   @id @default(cuid())
+  question   String
+  aiAnswer   String
+  isGood     Boolean  // true = 👍, false = 👎
+  correction String?  // khách gõ "câu trả lời đúng nên là..."
+  addedToKb  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("ai_feedback")
+}
+
+// Knowledge Base cho RAG — admin quản lý
+model KnowledgeEntry {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   @default("FAQ") // FAQ | ROOMS | SERVICES | POLICY | DINING
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_entries")
+}
+
 // Yêu cầu dịch vụ từ AI Concierge (dọn phòng, spa, xe, v.v.)
 model ServiceRequest {
   id        String   @id @default(cuid())

@@ -18,6 +18,7 @@ const NAV_ALL = [
   { to: '/vouchers', label: 'Gift Voucher', icon: '🎁' },
   { to: '/promo', label: 'Mã giảm giá', icon: '🎟️' },
   { to: '/reviews', label: 'Đánh giá', icon: '⭐' },
+  { to: '/ai-training', label: 'AI Training', icon: '🤖' },
   { to: '/realtime', label: 'Real-time', icon: '📡' },
   { to: '/staff', label: 'Nhân viên', icon: '👥', adminOnly: true },
   { to: '/settings', label: 'Cài đặt', icon: '⚙️', adminOnly: true },

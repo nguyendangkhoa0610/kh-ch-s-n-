@@ -316,14 +316,23 @@ mobileRouter.post('/concierge', guestAuth, async (c) => {
     })
   }
 
-  // Lấy thông tin booking của khách để cá nhân hóa
-  const booking = await prisma.booking.findUnique({
-    where: { id: guest.bookingId },
-    include: {
-      user: { select: { name: true } },
-      room: { include: { roomType: { select: { name: true, amenities: true } } } },
-    },
-  })
+  // Lấy booking + knowledge base song song
+  const [booking, kbEntries] = await Promise.all([
+    prisma.booking.findUnique({
+      where: { id: guest.bookingId },
+      include: {
+        user: { select: { name: true } },
+        room: { include: { roomType: { select: { name: true, amenities: true } } } },
+      },
+    }),
+    // RAG: lấy tất cả KB active, filter theo relevance đơn giản
+    prisma.knowledgeEntry.findMany({
+      where: { isActive: true },
+      select: { title: true, content: true, category: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    }),
+  ])
 
   const guestContext = booking ? `
 THÔNG TIN KHÁCH ĐANG CHAT:
@@ -332,6 +341,22 @@ THÔNG TIN KHÁCH ĐANG CHAT:
 • Check-in: ${booking.checkIn.toLocaleDateString('vi-VN')} | Check-out: ${booking.checkOut.toLocaleDateString('vi-VN')}
 • Số khách: ${booking.guests} người
 Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
+
+  // RAG: tìm top 3 KB entries liên quan đến câu hỏi
+  const msgLower = body.message.toLowerCase()
+  const relevant = kbEntries
+    .map(e => {
+      const score = (e.title.toLowerCase().split(' ').filter(w => w.length > 2 && msgLower.includes(w)).length * 2)
+        + (e.content.toLowerCase().split(' ').filter(w => w.length > 3 && msgLower.includes(w)).length)
+      return { ...e, score }
+    })
+    .filter(e => e.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+
+  const kbContext = relevant.length > 0
+    ? `\nTHÔNG TIN CẬP NHẬT TỪ KNOWLEDGE BASE (ưu tiên cao hơn thông tin mặc định):\n${relevant.map(e => `[${e.category}] ${e.title}: ${e.content}`).join('\n')}`
+    : ''
 
   const anthropic = new Anthropic({ apiKey })
 
@@ -349,7 +374,10 @@ Hãy xưng tên khách khi phù hợp và cá nhân hóa câu trả lời.` : ''
         text: CONCIERGE_SYSTEM,
         cache_control: { type: 'ephemeral' },
       },
-      ...(guestContext ? [{ type: 'text' as const, text: guestContext }] : []),
+      ...(guestContext || kbContext ? [{
+        type: 'text' as const,
+        text: guestContext + kbContext,
+      }] : []),
     ],
     messages,
   })
