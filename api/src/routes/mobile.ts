@@ -556,6 +556,30 @@ mobileRouter.get('/bill', guestAuth, async (c) => {
   })
 })
 
+// POST /api/mobile/service-request — tạo service request trực tiếp (không qua concierge)
+mobileRouter.post('/service-request', guestAuth, async (c) => {
+  const guest = c.get('guest') as GuestPayload
+  const body = await c.req.json<{ type: string; details: string }>()
+  if (!body.type || !body.details) return c.json({ error: 'type và details là bắt buộc' }, 400)
+
+  const sr = await prisma.serviceRequest.create({
+    data: { bookingId: guest.bookingId, type: body.type, details: body.details, status: 'PENDING' },
+  })
+
+  // Push đến staff
+  const staffUsers = await prisma.user.findMany({
+    where: { role: { in: ['STAFF', 'MANAGER'] }, pushToken: { not: null } },
+    select: { pushToken: true },
+  })
+  const pushMsgs = staffUsers.filter(u => u.pushToken?.startsWith('ExponentPushToken[')).map(u => ({
+    to: u.pushToken!, title: '🔔 Yêu cầu mới', body: body.details.slice(0, 80),
+    sound: 'default' as const, data: { type: 'SERVICE_REQUEST' },
+  }))
+  sendExpoPush(pushMsgs).catch(() => {})
+
+  return c.json({ data: sr })
+})
+
 // ── POST /api/mobile/sos ─────────────────────────────────────────────────────
 
 mobileRouter.post('/sos', guestAuth, async (c) => {
