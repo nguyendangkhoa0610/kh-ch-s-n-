@@ -190,7 +190,7 @@ function buildBookingEmail(params: {
               <td style="font-size:12px;color:#94a3b8;line-height:1.8;">
                 <strong style="color:#475569;">Trầm Hương Eco-Resort</strong><br>
                 Xã Cát Khánh, Phù Cát, Bình Định<br>
-                📞 0256 xxx xxxx &nbsp;·&nbsp; ✉️ hello@tramhuong-resort.vn<br>
+                📞 0256 3XX XXXX &nbsp;·&nbsp; ✉️ hello@tramhuong-resort.vn<br>
                 <br>
                 <span style="font-size:11px;">Email này được gửi tự động. Vui lòng không reply.</span>
               </td>
@@ -239,7 +239,7 @@ CHÍNH SÁCH: Hủy miễn phí trước 48h nhận phòng.
 
 Trầm Hương Eco-Resort
 Xã Cát Khánh, Phù Cát, Bình Định
-ĐT: 0256 xxx xxxx | Email: hello@tramhuong-resort.vn
+ĐT: 0256 3XX XXXX | Email: hello@tramhuong-resort.vn
 `.trim()
 
   return { subject, html, text }

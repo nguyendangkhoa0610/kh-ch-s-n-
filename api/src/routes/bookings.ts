@@ -8,8 +8,15 @@ const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
 
 export const bookingsRouter = new Hono()
 
-// GET /api/bookings
+// GET /api/bookings — admin/staff only
 bookingsRouter.get('/', async (c) => {
+  const header = c.req.header('Authorization') ?? ''
+  if (!header.startsWith('Bearer ')) return c.json({ error: 'Unauthorized' }, 401)
+  try {
+    const p = await verify(header.slice(7), JWT_SECRET, 'HS256') as { role: string }
+    if (!['ADMIN', 'MANAGER', 'STAFF'].includes(p.role)) return c.json({ error: 'Forbidden' }, 403)
+  } catch { return c.json({ error: 'Unauthorized' }, 401) }
+
   const status = c.req.query('status')
   const bookings = await prisma.booking.findMany({
     where: status ? { status } : undefined,

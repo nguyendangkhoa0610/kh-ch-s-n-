@@ -33,8 +33,23 @@ import { spaRouter } from './routes/spa.js'
 import { ecoRewardsRouter } from './routes/eco-rewards.js'
 import { sendBookingReminder } from './lib/email.js'
 import { prisma } from '@tram-huong/database'
+import { verify } from 'hono/jwt'
 
 const app = new Hono().basePath('/api')
+
+const JWT_SECRET = process.env['AUTH_SECRET'] ?? 'local-dev-secret'
+
+// ── Admin auth middleware ───────────────────────────────────────────────────────
+async function requireAdmin(c: any, next: any) {
+  const header = c.req.header('Authorization') ?? ''
+  if (!header.startsWith('Bearer ')) return c.json({ error: 'Unauthorized' }, 401)
+  try {
+    const p = await verify(header.slice(7), JWT_SECRET, 'HS256') as { role: string }
+    if (!['ADMIN', 'MANAGER', 'STAFF'].includes(p.role)) return c.json({ error: 'Forbidden' }, 403)
+    c.set('adminRole', p.role)
+    await next()
+  } catch { return c.json({ error: 'Unauthorized' }, 401) }
+}
 
 // ── Rate limiter in-memory đơn giản ──────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
@@ -98,6 +113,15 @@ app.use(
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok', service: 'tram-huong-api', ts: new Date() }))
 
+// ── Protect admin-only routes ─────────────────────────────────────────────────
+app.use('/staff/*', requireAdmin)
+app.use('/reports/*', requireAdmin)
+app.use('/export/*', requireAdmin)
+app.use('/housekeeping/*', requireAdmin)
+app.use('/notifications/*', requireAdmin)
+app.use('/eco-rewards/*', requireAdmin)
+app.use('/maintenance/*', requireAdmin)
+app.use('/promo/*', requireAdmin)
 // Routes
 app.route('/auth', authRouter)
 app.route('/rooms', roomsRouter)
