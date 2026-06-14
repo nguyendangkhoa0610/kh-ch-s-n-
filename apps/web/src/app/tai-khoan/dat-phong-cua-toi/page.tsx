@@ -56,7 +56,8 @@ export default function MyBookingsPage() {
   useEffect(() => {
     if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/dat-phong-cua-toi"); return; }
     loadBookings();
-  }, [user, router, loadBookings]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loadBookings]);
 
   async function handleCancel(bookingId: string, code: string) {
     if (!confirm(`Bạn có chắc muốn hủy booking ${code}?\n\nChính sách:\n• Hủy trước 48h: hoàn 100% đặt cọc\n• Hủy trong 24–48h: hoàn 50% đặt cọc\n• Hủy trong 24h: không hoàn đặt cọc`)) return;

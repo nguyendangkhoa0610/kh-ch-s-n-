@@ -19,7 +19,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) router.replace(redirect);
-  }, [user, router, redirect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, redirect]);
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }));

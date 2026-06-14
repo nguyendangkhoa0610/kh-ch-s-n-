@@ -40,7 +40,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<typeof form & { general: string }>>({});
 
-  useEffect(() => { if (user) router.replace(redirect); }, [user, router, redirect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user) router.replace(redirect); }, [user, redirect]);
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }));

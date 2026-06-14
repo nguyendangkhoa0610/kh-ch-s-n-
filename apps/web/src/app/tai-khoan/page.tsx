@@ -21,7 +21,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan"); return; }
     setForm({ name: user.name, phone: user.phone ?? "" });
-  }, [user, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (!user) return null;
 

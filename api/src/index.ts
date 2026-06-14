@@ -199,7 +199,7 @@ function scheduleDailyReminders() {
 }
 
 // Admin endpoint để trigger thủ công
-app.post('/api/admin/send-reminders', async (c) => {
+app.post('/admin/send-reminders', async (c) => {
   const count = await sendCheckInReminders()
   return c.json({ data: { sent: count, message: `Đã gửi ${count} email nhắc check-in ngày mai` } })
 })
