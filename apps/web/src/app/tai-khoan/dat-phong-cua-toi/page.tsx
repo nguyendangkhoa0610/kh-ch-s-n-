@@ -54,10 +54,13 @@ export default function MyBookingsPage() {
   }, [user, getHeaders]);
 
   useEffect(() => {
-    if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/dat-phong-cua-toi"); return; }
-    loadBookings();
+    const t = setTimeout(() => {
+      if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/dat-phong-cua-toi"); return; }
+      loadBookings();
+    }, 300);
+    return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loadBookings]);
+  }, [user]);
 
   async function handleCancel(bookingId: string, code: string) {
     if (!confirm(`Bạn có chắc muốn hủy booking ${code}?\n\nChính sách:\n• Hủy trước 48h: hoàn 100% đặt cọc\n• Hủy trong 24–48h: hoàn 50% đặt cọc\n• Hủy trong 24h: không hoàn đặt cọc`)) return;
@@ -78,7 +81,26 @@ export default function MyBookingsPage() {
     }
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <>
+        <SiteNav />
+        <main className="min-h-screen bg-slate-50 pt-[72px]">
+          <div className="bg-gradient-to-br from-emerald-950 to-slate-900 py-12 px-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="h-4 w-20 bg-emerald-400/20 rounded animate-pulse mb-3" />
+              <h1 className="font-serif text-3xl text-white/40">Đặt phòng của tôi</h1>
+            </div>
+          </div>
+          <div className="max-w-4xl mx-auto px-6 py-8 space-y-4">
+            {[1, 2].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-200 h-32 animate-pulse" />
+            ))}
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const filtered = filter === "all" ? bookings : bookings.filter(b => b.status === filter);
 

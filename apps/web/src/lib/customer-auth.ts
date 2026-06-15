@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -95,3 +96,18 @@ export const useCustomerAuth = create<AuthState>()(
     }
   )
 );
+
+// Module-level flag — survives RSC remounts. Once the client sets it true, all
+// subsequent mounts (even after RSC refresh cycles) initialise ready=true immediately.
+let _clientMounted = false;
+
+export function useHasHydrated(): boolean {
+  const [ready, setReady] = useState(_clientMounted);
+  useEffect(() => {
+    if (!_clientMounted) {
+      _clientMounted = true;
+      setReady(true);
+    }
+  }, []);
+  return ready;
+}

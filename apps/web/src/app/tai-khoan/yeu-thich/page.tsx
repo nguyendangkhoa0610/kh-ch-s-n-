@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useCustomerAuth } from "@/lib/customer-auth";
+import { SiteNav } from "@/components/site-nav";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
@@ -19,29 +22,55 @@ function formatPrice(n: number) {
 }
 
 export default function WishlistPage() {
+  const router = useRouter();
+  const { user, getHeaders } = useCustomerAuth();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) { window.location.href = "/tai-khoan/dang-nhap?redirect=/tai-khoan/yeu-thich"; return; }
-    fetch(`${API}/wishlist`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(j => { setItems(j.data ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+    const t = setTimeout(() => {
+      if (!user) { router.replace("/tai-khoan/dang-nhap?redirect=/tai-khoan/yeu-thich"); return; }
+      fetch(`${API}/wishlist`, { headers: getHeaders() })
+        .then(r => r.json())
+        .then(j => { setItems(j.data ?? []); setLoading(false); })
+        .catch(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const remove = async (roomTypeId: string) => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
     await fetch(`${API}/wishlist/${roomTypeId}`, {
-      method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+      method: "DELETE", headers: getHeaders(),
     });
     setItems(prev => prev.filter(i => i.roomType.id !== roomTypeId));
   };
 
+  if (!user) {
+    return (
+      <>
+        <SiteNav />
+        <main className="min-h-screen bg-slate-50 pt-24 pb-16 px-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="font-serif text-3xl text-slate-300">Phòng yêu thích</h1>
+                <div className="h-4 w-32 bg-slate-100 rounded animate-pulse mt-1" />
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-64 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-16 px-6">
+    <main className="min-h-screen bg-slate-50 pt-24 pb-16 px-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -103,6 +132,6 @@ export default function WishlistPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

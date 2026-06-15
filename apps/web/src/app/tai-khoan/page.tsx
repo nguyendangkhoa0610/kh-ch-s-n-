@@ -24,7 +24,24 @@ export default function ProfilePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <>
+        <SiteNav />
+        <main className="min-h-screen bg-slate-50 pt-[72px]">
+          <div className="bg-gradient-to-br from-emerald-950 to-slate-900 py-12 px-6">
+            <div className="max-w-4xl mx-auto flex items-center gap-5">
+              <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl animate-pulse shrink-0" />
+              <div className="space-y-2">
+                <div className="h-6 w-44 bg-white/10 rounded animate-pulse" />
+                <div className="h-4 w-32 bg-emerald-400/20 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();

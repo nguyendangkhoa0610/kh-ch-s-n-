@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
-import { useCustomerAuth } from "@/lib/customer-auth";
+import { useCustomerAuth, useHasHydrated } from "@/lib/customer-auth";
 
 function PasswordStrength({ password }: { password: string }) {
   if (!password) return null;
@@ -35,13 +35,14 @@ export default function RegisterPage() {
   const redirect = searchParams.get("redirect") ?? "/tai-khoan";
   const prefillEmail = searchParams.get("email") ?? "";
   const { register, user } = useCustomerAuth();
+  const _hasHydrated = useHasHydrated();
   const [form, setForm] = useState({ name: "", email: prefillEmail, phone: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<typeof form & { general: string }>>({});
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) router.replace(redirect); }, [user, redirect]);
+  useEffect(() => { if (_hasHydrated && user) router.replace(redirect); }, [user, _hasHydrated, redirect]);
 
   function setField(k: keyof typeof form, v: string) {
     setForm(f => ({ ...f, [k]: v }));
