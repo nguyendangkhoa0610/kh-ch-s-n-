@@ -33,7 +33,7 @@ export default function ProfilePage() {
             <div className="max-w-4xl mx-auto flex items-center gap-5">
               <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl animate-pulse shrink-0" />
               <div className="space-y-2">
-                <div className="h-6 w-44 bg-white/10 rounded animate-pulse" />
+                <h1 className="font-serif text-2xl text-white/30">Tài khoản</h1>
                 <div className="h-4 w-32 bg-emerald-400/20 rounded animate-pulse" />
               </div>
             </div>
